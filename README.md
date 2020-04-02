@@ -28,4 +28,4 @@ Experimental support for VS Code Server in NixOS. The NodeJS by default supplied
 
 ## Usage
 
-If `services.vscode-server.enable` was already set to `true` when trying to connect it should simply work, there is nothing for you to do.
+When the service is enabled and running it should simply work, there is nothing for you to do.
