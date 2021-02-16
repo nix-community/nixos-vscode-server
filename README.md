@@ -14,6 +14,12 @@ Experimental support for VS Code Server in NixOS. The NodeJS by default supplied
 }
 ```
 
+And then enable them for the relevant users:
+
+```
+systemctl --user enable auto-fix-vscode-server.service
+```
+
 ### Home Manager
 
 ```nix
