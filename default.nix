@@ -1,1 +1,1 @@
-import ./modules/vscode-server
+import ./modules

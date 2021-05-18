@@ -4,34 +4,58 @@ Experimental support for VS Code Server in NixOS. The NodeJS by default supplied
 
 ## Installation
 
+### Flake
 ```nix
 {
-  imports = [
-    (fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master")
-  ];
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixos-vscode-server.url ="github:iosmanthus/nixos-vscode-server/add-flake";
+  };
 
-  services.vscode-server.enable = true;
+  outputs = inputs@{self, nixpkgs, ...}: {
+    nixosConfigurations.some-host = nixpkgs.lib.nixosSystem rec {
+        system = "x86_64-linux";
+        # For more information of this field, check:
+        # https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/eval-config.nix
+        modules = [
+          ./configuration.nix
+          {
+            imports = [ inputs.auto-fix-vscode-server.nixosModules.system ];
+            services.auto-fix-vscode-server.enable = true;
+          }
+        ];
+      };
+  };
 }
-```
-
-And then enable them for the relevant users:
-
-```
-systemctl --user enable auto-fix-vscode-server.service
 ```
 
 ### Home Manager
 
 ```nix
 {
-  imports = [
-    "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
-  ];
+    inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixos-vscode-server.url ="github:iosmanthus/nixos-vscode-server/add-flake";
+  };
 
-  services.vscode-server.enable = true;
+  outputs = inputs@{self, nixpkgs, ...}: {
+    nixosConfigurations.some-host = nixpkgs.lib.nixosSystem rec {
+        system = "x86_64-linux";
+        # For more information of this field, check:
+        # https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/eval-config.nix
+        modules = [
+          ./configuration.nix
+          {
+            home-manager = {
+              user.iosmanthus = {
+                imports = [ 
+                  inputs.nixos-vscode-server.nixosModules.homeManager;
+                ];
+              };
+            };
+          }
+        ];
+      };
+    };
 }
 ```
-
-## Usage
-
-When the service is enabled and running it should simply work, there is nothing for you to do.
