@@ -20,6 +20,30 @@ And then enable them for the relevant users:
 systemctl --user enable auto-fix-vscode-server.service
 ```
 
+You will see the following message:
+
+```
+The unit files have no installation config (WantedBy=, RequiredBy=, Also=,
+Alias= settings in the [Install] section, and DefaultInstance= for template
+units). This means they are not meant to be enabled using systemctl.
+ 
+Possible reasons for having this kind of units are:
+• A unit may be statically enabled by being symlinked from another unit's
+  .wants/ or .requires/ directory.
+• A unit's purpose may be to act as a helper for some other unit which has
+  a requirement dependency on it.
+• A unit may be started when needed via activation (socket, path, timer,
+  D-Bus, udev, scripted systemctl call, ...).
+• In case of template units, the unit is meant to be enabled with some
+  instance name specified.
+```
+
+However you can safely ignore it. The service will start automatically after reboot once enabled, or you can just start it immediately yourself with:
+
+```
+systemctl --user start auto-fix-vscode-server.service
+```
+
 ### Home Manager
 
 ```nix
