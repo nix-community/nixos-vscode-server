@@ -16,7 +16,7 @@ with lib;
       # so rather than creating our own restart mechanism, we leverage systemd to do this for us.
       Restart = "always";
       RestartSec = 0;
-      ExecStart = pkgs.writeShellScript "${name}.sh" ''
+      ExecStart = "${pkgs.writeShellScript "${name}.sh" ''
         set -euo pipefail
         PATH=${makeBinPath (with pkgs; [ coreutils inotify-tools ])}
         bin_dir=~/.vscode-server/bin
@@ -36,7 +36,7 @@ with lib;
             exit 0
           fi
         done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%w%f:%e' "$bin_dir")
-      '';
+      ''}";
     };
   };
 }
