@@ -20,12 +20,15 @@ with lib;
         set -euo pipefail
         PATH=${makeBinPath (with pkgs; [ coreutils findutils inotify-tools ])}
         bin_dir=~/.vscode-server/bin
+
+        # Fix any existing symlinks before we enter the inotify loop.
         if [[ -e $bin_dir ]]; then
           find "$bin_dir" -mindepth 2 -maxdepth 2 -name node -exec ln -sfT ${pkgs.nodejs-14_x}/bin/node {} \;
           find "$bin_dir" -path '*/vscode-ripgrep/bin/rg' -exec ln -sfT ${pkgs.ripgrep}/bin/rg {} \;
         else
           mkdir -p "$bin_dir"
         fi
+
         while IFS=: read -r bin_dir event; do
           # A new version of the VS Code Server is being created.
           if [[ $event == 'CREATE,ISDIR' ]]; then
