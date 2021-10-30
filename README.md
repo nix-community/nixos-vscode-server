@@ -46,6 +46,8 @@ systemctl --user start auto-fix-vscode-server.service
 
 ### Home Manager
 
+Put this code into your [home-manager](https://github.com/nix-community/home-manager) configuration i.e. in `~/.config/nixpkgs/home.nix`:
+
 ```nix
 {
   imports = [
