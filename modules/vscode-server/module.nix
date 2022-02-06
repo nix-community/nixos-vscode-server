@@ -1,10 +1,34 @@
 moduleConfig:
-{ lib, pkgs, ... }:
+{ lib, pkgs, config, ... }:
 
 with lib;
 
+let
+  extensionPath = ".vscode-server/extensions";
+in
 {
-  options.services.vscode-server.enable = with types; mkEnableOption "VS Code Server";
+  options.services.vscode-server = {
+    enable = with types; mkEnableOption "VS Code Server";
+
+    extensions = mkOption {
+      type = types.listOf types.package;
+      default = [ ];
+      example = literalExpression "[ pkgs.vscode-extensions.bbenoist.nix ]";
+      description = ''
+        The extensions Visual Studio Code should be started with.
+      '';
+    };
+
+    immutableExtensionsDir = mkOption {
+      type = types.bool;
+      default = false;
+      example = true;
+      description = ''
+        Whether extensions can be installed or updated manually
+        by Visual Studio Code.
+      '';
+    };
+  };
 
   config = moduleConfig rec {
     name = "auto-fix-vscode-server";
@@ -45,5 +69,30 @@ with lib;
         done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%w%f:%e' "$bin_dir")
       ''}";
     };
+
+    # Adapted from https://github.com/nix-community/home-manager/blob/master/modules/programs/vscode.nix
+    extensions = mkMerge [
+      (mkIf (config.services.vscode-server.extensions != [ ]) (
+      let
+        combinedExtensionsDrv = pkgs.buildEnv {
+          name = "vscode-extensions";
+          paths = config.services.vscode-server.extensions;
+        };
+
+        extensionsFolder = "${combinedExtensionsDrv}/share/vscode/extensions";
+
+        addSymlinkToExtension = k: {
+          "${extensionPath}/${k}".source = "${extensionsFolder}/${k}";
+        };
+
+        extensions = builtins.attrNames (builtins.readDir extensionsFolder);
+
+      in
+        if config.services.vscode-server.immutableExtensionsDir then {
+          "${extensionPath}".source = extensionsFolder;
+      } else
+        mkMerge (map addSymlinkToExtension extensions)
+      ))
+    ];
   };
 }

@@ -1,4 +1,4 @@
-import ./module.nix ({ name, description, serviceConfig }:
+import ./module.nix ({ name, description, serviceConfig, extensions }:
 
 {
   systemd.user.services.${name} = {
@@ -12,4 +12,6 @@ import ./module.nix ({ name, description, serviceConfig }:
       WantedBy = [ "default.target" ];
     };
   };
+
+  home.file = extensions;
 })
