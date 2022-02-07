@@ -1,10 +1,65 @@
 moduleConfig:
-{ lib, pkgs, ... }:
+{ lib, pkgs, config, ... }:
 
 with lib;
 
+let
+  originalNodePackage = pkgs.nodejs-14_x;
+
+  # Adapted from https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/applications/editors/vscode/generic.nix#L181
+  nodePackageFhs = pkgs.buildFHSUserEnv {
+    name = originalNodePackage.name;
+
+    # additional libraries which are commonly needed for extensions
+    targetPkgs = pkgs: (with pkgs; [
+      # ld-linux-x86-64-linux.so.2 and others
+      glibc
+
+      # dotnet
+      curl
+      icu
+      libunwind
+      libuuid
+      openssl
+      zlib
+
+      # mono
+      krb5
+    ]);
+
+    runScript = "${originalNodePackage}/bin/node";
+
+    meta = {
+      description = ''
+        Wrapped variant of ${name} which launches in an FHS compatible envrionment.
+        Should allow for easy usage of extensions without nix-specific modifications.
+      '';
+    };
+  };
+
+  originalNodePackageBin = "${originalNodePackage}/bin/node";
+  nodePackageFhsBin = "${nodePackageFhs}/bin/${nodePackageFhs.name}";
+
+  nodeBinToUse = if 
+    config.services.vscode-server.useFhsNodeEnvironment
+  then 
+    nodePackageFhsBin
+  else
+    originalNodePackageBin;
+in
 {
-  options.services.vscode-server.enable = with types; mkEnableOption "VS Code Server";
+  options.services.vscode-server = {
+    enable = with types; mkEnableOption "VS Code Server";
+
+    useFhsNodeEnvironment = mkOption {
+      type = types.bool;
+      default = false;
+      example = true;
+      description = ''
+        Wraps NodeJS in a Fhs compatible envrionment. Should allow for easy usage of extensions without nix-specific modifications. 
+      '';
+    };
+  };
 
   config = moduleConfig rec {
     name = "auto-fix-vscode-server";
@@ -23,7 +78,7 @@ with lib;
 
         # Fix any existing symlinks before we enter the inotify loop.
         if [[ -e $bin_dir ]]; then
-          find "$bin_dir" -mindepth 2 -maxdepth 2 -name node -exec ln -sfT ${pkgs.nodejs-14_x}/bin/node {} \;
+          find "$bin_dir" -mindepth 2 -maxdepth 2 -name node -exec ln -sfT ${nodeBinToUse} {} \;
           find "$bin_dir" -path '*/vscode-ripgrep/bin/rg' -exec ln -sfT ${pkgs.ripgrep}/bin/rg {} \;
         else
           mkdir -p "$bin_dir"
@@ -35,7 +90,7 @@ with lib;
             # Create a trigger to know when their node is being created and replace it for our symlink.
             touch "$bin_dir/node"
             inotifywait -qq -e DELETE_SELF "$bin_dir/node"
-            ln -sfT ${pkgs.nodejs-14_x}/bin/node "$bin_dir/node"
+            ln -sfT ${nodeBinToUse} "$bin_dir/node"
             ln -sfT ${pkgs.ripgrep}/bin/rg "$bin_dir/node_modules/vscode-ripgrep/bin/rg"
           # The monitored directory is deleted, e.g. when "Uninstall VS Code Server from Host" has been run.
           elif [[ $event == DELETE_SELF ]]; then
