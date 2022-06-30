@@ -62,7 +62,7 @@ Put this code into your [home-manager](https://github.com/nix-community/home-man
 
 When the service is enabled and running it should simply work, there is nothing for you to do.
 
-## Known issues
+## Troubleshooting
 
 This is not really an issue with this project per se, but with systemd user services in NixOS in general. After updating it can be necessary to first disable the service again:
 
@@ -71,3 +71,16 @@ systemctl --user disable auto-fix-vscode-server.service
 ````
 
 This will remove the symlink to the old version. Then you can enable/start it again.
+
+### Connecting with SSH timed out
+
+If the remote SSH session fails to start with this error:
+
+> Failed to connect to the remote extension host server (Error: Connecting with SSH timed out)
+
+Try adding this to your VS Code settings json:
+```
+    "remote.SSH.useLocalServer": false,
+```
+
+Tested on VS Code version 1.63.2, connecting to the NixOS remote from a MacOS host.
