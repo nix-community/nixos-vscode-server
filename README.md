@@ -4,6 +4,13 @@ Experimental support for VS Code Server in NixOS. The NodeJS by default supplied
 
 ## Installation
 
+### NixOS module
+
+You can add the module to your system in various ways. After the installation
+you'll have to manually enable the service for each user (see below).
+
+#### Install as a tarball
+
 ```nix
 {
   imports = [
@@ -13,6 +20,27 @@ Experimental support for VS Code Server in NixOS. The NodeJS by default supplied
   services.vscode-server.enable = true;
 }
 ```
+
+#### Install as a flake
+
+```nix
+{
+  inputs.vscode-server.url = "github:msteen/nixos-vscode-server";
+
+  outputs = { self, nixpkgs, vscode-server }: {
+    nixosConfigurations.yourhostname = nixpkgs.lib.nixosSystem {
+      modules = [
+        vscode-server.nixosModule
+        ({ config, pkgs, ... }: {
+          services.vscode-server.enable = true;
+        })
+      ];
+    };
+  };
+}
+```
+
+#### Enable the service
 
 And then enable them for the relevant users:
 
@@ -26,7 +54,7 @@ You will see the following message:
 The unit files have no installation config (WantedBy=, RequiredBy=, Also=,
 Alias= settings in the [Install] section, and DefaultInstance= for template
 units). This means they are not meant to be enabled using systemctl.
- 
+
 Possible reasons for having this kind of units are:
 • A unit may be statically enabled by being symlinked from another unit's
   .wants/ or .requires/ directory.
