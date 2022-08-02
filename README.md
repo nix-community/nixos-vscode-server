@@ -34,6 +34,15 @@ you'll have to manually enable the service for each user (see below).
         ({ config, pkgs, ... }: {
           services.vscode-server.enable = true;
         })
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.users.jdoe = {
+            imports = [
+              vscode-server.homeManagerModule
+            ]
+            services.vscode-server.enable = true;
+          };
+        }
       ];
     };
   };
