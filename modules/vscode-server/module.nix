@@ -1,12 +1,12 @@
 moduleConfig:
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 with lib;
 
 {
   options.services.vscode-server.enable = with types; mkEnableOption "VS Code Server";
 
-  config = moduleConfig rec {
+  config = lib.mkIf config.services.vscode-server.enable (moduleConfig rec {
     name = "auto-fix-vscode-server";
     description = "Automatically fix the VS Code server used by the remote SSH extension";
     serviceConfig = {
@@ -45,5 +45,5 @@ with lib;
         done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%w%f:%e' "$bin_dir")
       ''}";
     };
-  };
+  });
 }
