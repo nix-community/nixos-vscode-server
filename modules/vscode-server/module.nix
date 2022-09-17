@@ -4,7 +4,14 @@ moduleConfig:
 with lib;
 
 {
-  options.services.vscode-server.enable = with types; mkEnableOption "VS Code Server";
+  options.services.vscode-server = {
+    enable = with types; mkEnableOption "VS Code Server";
+    path = mkOption {
+      description = "Path to the server root location";
+      type = types.str;
+    };
+    default = "~/.vscode-server";
+  };
 
   config = lib.mkIf config.services.vscode-server.enable (moduleConfig rec {
     name = "auto-fix-vscode-server";
@@ -19,7 +26,7 @@ with lib;
       ExecStart = "${pkgs.writeShellScript "${name}.sh" ''
         set -euo pipefail
         PATH=${makeBinPath (with pkgs; [ coreutils findutils inotify-tools ])}
-        bin_dir=~/.vscode-server/bin
+        bin_dir=${config.services.vscode-server.path}/bin
 
         # Fix any existing symlinks before we enter the inotify loop.
         if [[ -e $bin_dir ]]; then
