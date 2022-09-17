@@ -9,8 +9,8 @@ with lib;
     path = mkOption {
       description = "Path to the server root location";
       type = types.str;
+      default = "~/.vscode-server";
     };
-    default = "~/.vscode-server";
   };
 
   config = lib.mkIf config.services.vscode-server.enable (moduleConfig rec {

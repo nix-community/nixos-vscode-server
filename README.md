@@ -90,6 +90,27 @@ Put this code into your [home-manager](https://github.com/nix-community/home-man
 
 When the service is enabled and running it should simply work, there is nothing for you to do.
 
+
+#### Custom server path
+
+A remote server location can be customized from the default `~/.vscode-server` in your `settings.json`, for example:
+
+```jsonc
+{
+  // ...
+  "remote.SSH.serverInstallPath": {
+    "HOSTNAME": "/home/USER/.local/share",
+  }
+}
+```
+
+To reflect these changes in your configuration set the following option:
+
+```nix
+services.vscode-server.enable = true;
+services.vscode-server.path = "~/.local/share/.vscode-server";
+```
+
 ## Troubleshooting
 
 This is not really an issue with this project per se, but with systemd user services in NixOS in general. After updating it can be necessary to first disable the service again:
