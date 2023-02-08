@@ -4,7 +4,7 @@ moduleConfig:
 {
   options.services.vscode-server = let
     inherit (lib) mkEnableOption mkOption;
-    inherit (lib.types) bool functionTo listOf package str;
+    inherit (lib.types) bool listOf package str unspecified;
   in {
     enable = mkEnableOption "VS Code Server";
 
@@ -18,7 +18,7 @@ moduleConfig:
     };
 
     extraFHSPackages = mkOption {
-      type = functionTo (listOf package);
+      type = unspecified;
       default = pkgs: [ ];
       description = ''
         A function to add extra packages to the FHS compatible environment.
@@ -44,7 +44,7 @@ moduleConfig:
     };
   };
 
-  config = let cfg = config.services.vscode-server; in mkIf cfg.enable (moduleConfig {
+  config = let cfg = config.services.vscode-server; in lib.mkIf cfg.enable (moduleConfig {
     name = "auto-fix-vscode-server";
     description = "Automatically fix the VS Code server used by the remote SSH extension";
     serviceConfig = {
@@ -54,7 +54,7 @@ moduleConfig:
       # so rather than creating our own restart mechanism, we leverage systemd to do this for us.
       Restart = "always";
       RestartSec = 0;
-      ExecStart = pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix (removeAttrs [ "enable" ] cfg);
+      ExecStart = pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix (removeAttrs cfg [ "enable" ]);
     };
   });
 }

@@ -9,7 +9,7 @@ let
   nodejs = nodejsPackage;
 
   # Based on: https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/applications/editors/vscode/generic.nix
-  nodejsFHS = pkgs.buildFHSUserEnv {
+  nodejsFHS = buildFHSUserEnv {
     name = nodejs.name;
 
     # additional libraries which are commonly needed for extensions
@@ -42,13 +42,12 @@ let
     };
   };
 
-  nodeBin = if enableFHS then "${nodejs}/bin/node" else "${nodejsFHS}/bin/${nodejsFHS.name}";
+  nodeBin = if enableFHS then "${nodejsFHS}/bin/${nodejsFHS.name}" else "${nodejs}/bin/node";
 
-in
-writeShellScript "auto-fix-vscode-server.sh" ''
+in writeShellScript "auto-fix-vscode-server.sh" ''
   set -euo pipefail
   PATH=${lib.makeBinPath [ coreutils findutils inotify-tools ]}
-  bin_dir='${installPath}/bin'
+  bin_dir=${installPath}/bin
 
   # Fix any existing symlinks before we enter the inotify loop.
   if [[ -e $bin_dir ]]; then
