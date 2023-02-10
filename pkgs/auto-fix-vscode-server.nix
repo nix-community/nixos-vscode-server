@@ -1,4 +1,4 @@
-{ lib, writeShellScript, coreutils, findutils, inotify-tools, ripgrep, buildFHSUserEnvBubblewrap, nodejs-16_x
+{ lib, writeShellScript, coreutils, findutils, inotify-tools, ripgrep, buildFHSUserEnv, nodejs-16_x
 , nodejsPackage ? nodejs-16_x
 , extraFHSPackages ? (pkgs: [ ])
 , installPath ? "~/.vscode-server"
@@ -6,7 +6,7 @@
 
 let
   # Based on: https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/applications/editors/vscode/generic.nix
-  nodejs = buildFHSUserEnvBubblewrap {
+  nodejs = buildFHSUserEnv {
     name = "node";
 
     # additional libraries which are commonly needed for extensions
