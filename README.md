@@ -44,7 +44,7 @@ you'll have to manually enable the service for each user (see below).
 
 And then enable them for the relevant users:
 
-```
+```bash
 systemctl --user enable auto-fix-vscode-server.service
 ```
 
@@ -88,15 +88,46 @@ Put this code into your [home-manager](https://github.com/nix-community/home-man
 
 ## Usage
 
-When the service is enabled and running it should simply work, there is nothing for you to do.
+When using VS Code as released by Microsoft without any special needs, just enabling and starting the service should be enough to make things work. If you have some custom build or needs, there are a few options available that might help you out.
+
+### `nodejsPackage`
+The Node.js version needed for VS Code server is based on the VS Code version of the client. By default it should contain the version of Node.js needed by the latest version of VS Code. Considering this can change in the future and people might have different versions of VS Code running, it has been made configurable.
+
+Disclaimer: I am not a very active user of this extension and even NixOS (at the moment), yet I know how important this extension can be to some people, so at least this way you can workaround it until the default get updated.
+
+```nix
+{
+  services.vscode-server.nodejsPackage = pkgs.nodejs-18_x;
+}
+```
+
+### `extraFHSPackages`
+Since version `1.75` of VS Code it is necessary to use a FHS compatible environment for VS Code server itself to work. It also makes various extensions work that contain binaries and expect a FHS compatible environment (see #20). If you have an extension that contains such a binary, but requires dependencies that are not already included, you can add them here to make them available to the FHS environment.
+
+```nix
+{
+  services.vscode-server.extraFHSPackages = pkgs: builtins.attrValues {
+    inherit (pkgs) curl;
+  };
+}
+```
+
+### `installPath`
+The installation path for VS Code server is configurable and the default can differ for alternative builds (e.g. oss and insider), so this option allows you to configure which installation path should be monitered and automatically fixed.
+
+```nix
+{
+  services.vscode-server.installPath = "~/.vscode-server-oss";
+}
+```
 
 ## Troubleshooting
 
 This is not really an issue with this project per se, but with systemd user services in NixOS in general. After updating it can be necessary to first disable the service again:
 
-```
+```bash
 systemctl --user disable auto-fix-vscode-server.service
-````
+```
 
 This will remove the symlink to the old version. Then you can enable/start it again.
 
@@ -107,7 +138,7 @@ If the remote SSH session fails to start with this error:
 > Failed to connect to the remote extension host server (Error: Connecting with SSH timed out)
 
 Try adding this to your VS Code settings json:
-```
+```json
     "remote.SSH.useLocalServer": false,
 ```
 
