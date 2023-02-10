@@ -1,16 +1,13 @@
-{ lib, writeShellScript, coreutils, findutils, inotify-tools, ripgrep, buildFHSUserEnv, nodejs-16_x
-, enableFHS ? true
-, extraFHSPackages ? (pkgs: [ ])
+{ lib, writeShellScript, coreutils, findutils, inotify-tools, ripgrep, buildFHSUserEnvBubblewrap, nodejs-16_x
 , nodejsPackage ? nodejs-16_x
+, extraFHSPackages ? (pkgs: [ ])
 , installPath ? "~/.vscode-server"
 }:
 
 let
-  nodejs = nodejsPackage;
-
   # Based on: https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/applications/editors/vscode/generic.nix
-  nodejsFHS = buildFHSUserEnv {
-    name = nodejs.name;
+  nodejs = buildFHSUserEnvBubblewrap {
+    name = "node";
 
     # additional libraries which are commonly needed for extensions
     targetPkgs = pkgs: (builtins.attrValues {
@@ -32,17 +29,15 @@ let
       ;
     }) ++ extraFHSPackages pkgs;
 
-    runScript = "${nodejs}/bin/node";
+    runScript = "${nodejsPackage}/bin/node";
 
     meta = {
       description = ''
-        Wrapped variant of ${nodejs.name} which launches in an FHS compatible envrionment,
+        Wrapped variant of Node.js which launches in an FHS compatible envrionment,
         which should allow for easy usage of extensions without nix-specific modifications.
       '';
     };
   };
-
-  nodeBin = if enableFHS then "${nodejsFHS}/bin/${nodejsFHS.name}" else "${nodejs}/bin/node";
 
 in writeShellScript "auto-fix-vscode-server.sh" ''
   set -euo pipefail
@@ -51,7 +46,7 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
 
   # Fix any existing symlinks before we enter the inotify loop.
   if [[ -e $bin_dir ]]; then
-    find "$bin_dir" -mindepth 2 -maxdepth 2 -name node -exec ln -sfT ${nodeBin} {} \;
+    find "$bin_dir" -mindepth 2 -maxdepth 2 -name node -exec ln -sfT ${nodejs}/bin/node {} \;
     find "$bin_dir" -path '*/@vscode/ripgrep/bin/rg' -exec ln -sfT ${ripgrep}/bin/rg {} \;
   else
     mkdir -p "$bin_dir"
@@ -63,7 +58,7 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
       # Create a trigger to know when their node is being created and replace it for our symlink.
       touch "$bin_dir/node"
       inotifywait -qq -e DELETE_SELF "$bin_dir/node"
-      ln -sfT ${nodeBin} "$bin_dir/node"
+      ln -sfT ${nodejs}/bin/node "$bin_dir/node"
       ln -sfT ${ripgrep}/bin/rg "$bin_dir/node_modules/@vscode/ripgrep/bin/rg"
     # The monitored directory is deleted, e.g. when "Uninstall VS Code Server from Host" has been run.
     elif [[ $event == DELETE_SELF ]]; then

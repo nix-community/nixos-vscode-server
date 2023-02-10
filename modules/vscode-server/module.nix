@@ -8,12 +8,12 @@ moduleConfig:
   in {
     enable = mkEnableOption "VS Code Server";
 
-    enableFHS = mkOption {
-      type = bool;
-      default = true;
-      example = false;
+    nodejsPackage = mkOption {
+      type = package;
+      default = pkgs.nodejs-16_x;
+      example = pkgs.nodejs-18_x;
       description = ''
-        Whether to enable FHS compatible environment.
+        The Node.js package of the Node.js version used by VS Code version of the client.
       '';
     };
 
@@ -22,15 +22,6 @@ moduleConfig:
       default = pkgs: [ ];
       description = ''
         A function to add extra packages to the FHS compatible environment.
-      '';
-    };
-
-    nodejsPackage = mkOption {
-      type = package;
-      default = pkgs.nodejs-16_x;
-      example = pkgs.nodejs-18_x;
-      description = ''
-        The Node.js package of the Node.js version used by VS Code version of the client.
       '';
     };
 
