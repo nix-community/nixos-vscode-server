@@ -29,7 +29,9 @@ let
       ;
     }) ++ extraFHSPackages pkgs;
 
-    extraBindMounts = "/usr/lib/wsl/lib";
+    extraBuildCommands = ''
+      cp -rsHf /usr/lib/wsl "usr/lib/wsl"
+    '';
 
     runScript = "${nodejsPackage}/bin/node";
 
