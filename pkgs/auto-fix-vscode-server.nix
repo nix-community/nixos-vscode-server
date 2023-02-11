@@ -30,7 +30,10 @@ let
     }) ++ extraFHSPackages pkgs;
 
     extraBuildCommands = ''
-      cp -rsHf /usr/lib/wsl usr/lib/wsl
+      if [[ -d /usr/lib/wsl ]]
+      then
+        cp -rsHf /usr/lib/wsl usr/lib/wsl
+      fi
     '';
 
     runScript = "${nodejsPackage}/bin/node";
