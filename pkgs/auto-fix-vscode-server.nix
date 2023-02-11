@@ -56,7 +56,14 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
     local bin_dir=$1 interp
     ln -sfT ${nodejsWrapped}/bin/node "$bin_dir/node"
     while read -rd ''' bin; do
-      interp=$(patchelf --print-interpreter "$bin" 2>/dev/null) && [[ $interp != "$node_rpath" ]] || continue
+      # Check if binary is patchable, e.g. not a statically-linked or non-ELF binary.
+      if ! interp=$(patchelf --print-interpreter "$bin" 2>/dev/null); then
+        continue
+      fi
+      # Check if it is not already patched for Nix.
+      if [[ $interp == "$node_interp" ]]; then
+        continue
+      fi
       patchelf --set-interpreter "$node_interp" --set-rpath "$node_rpath" "$bin"
       patchelf --shrink-rpath "$bin"
     done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
