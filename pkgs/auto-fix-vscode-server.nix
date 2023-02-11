@@ -67,7 +67,7 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
     echo "Checking for helper binaries..."
     local iter=0
     while [[ ! -e "$bin_dir/node_modules/node-pty/build/Release/spawn-helper" && $iter -lt 50 ]]; do
-      (( iter++ ))
+      (( ++iter ))
       echo "Waiting for helper binaries to be populated... attempt $iter of 50"
       sleep 0.1
     done
