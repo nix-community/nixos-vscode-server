@@ -29,11 +29,7 @@ let
       ;
     }) ++ extraFHSPackages pkgs;
 
-    extraBwrapArgs = [
-      "--bind-try"
-      "/usr/lib/wsl/lib"
-      "/usr/lib/wsl/lib"
-    ];
+    extraBindMounts = "/usr/lib/wsl/lib";
 
     runScript = "${nodejsPackage}/bin/node";
 
