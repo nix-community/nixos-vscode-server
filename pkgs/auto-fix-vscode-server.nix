@@ -1,4 +1,4 @@
-{ lib, writeShellScript, coreutils, findutils, inotify-tools, patchelf, ripgrep, nodejs-16_x, buildFHSUserEnv
+{ lib, writeShellScript, coreutils, findutils, inotify-tools, patchelf, nodejs-16_x, buildFHSUserEnv
 , nodejsPackage ? nodejs-16_x
 , enableFHS ? false
 , extraFHSPackages ? (pkgs: [ ])
@@ -47,18 +47,23 @@ let
 in writeShellScript "auto-fix-vscode-server.sh" ''
   set -euo pipefail
   PATH=${lib.makeBinPath [ coreutils findutils inotify-tools patchelf ]}
+
   bins_dir=${installPath}/bin
+  node_interp=$(patchelf --print-interpreter ${nodejs}/bin/node)
+  node_rpath=$(patchelf --print-rpath ${nodejs}/bin/node)
 
   patch_bin() {
-    bin_dir=$1
+    local bin_dir=$1 interp
     ln -sfT ${nodejsWrapped}/bin/node "$bin_dir/node"
-    if [[ -e $bin_dir/node_modules/node-pty/build/Release/spawn-helper ]]; then
+    while read -rd ''' bin; do
+      interp=$(patchelf --print-interpreter "$bin" 2>/dev/null)
+      [[ $? -ne 0 || $interp == "$node_rpath" ]] && continue
       patchelf \
-        --set-interpreter "$(patchelf --print-interpreter ${nodejs}/bin/node)" \
-        --set-rpath "$(patchelf --print-rpath ${nodejs}/bin/node)" \
-        "$bin_dir/node_modules/node-pty/build/Release/spawn-helper"
-    fi
-    ln -sfT ${ripgrep}/bin/rg "$bin_dir/node_modules/@vscode/ripgrep/bin/rg"
+        --set-interpreter "$node_interp" \
+        --set-rpath "$node_rpath" \
+        --shrink-rpath \
+        "$bin"
+    done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
   }
 
   # Fix any existing symlinks before we enter the inotify loop.
