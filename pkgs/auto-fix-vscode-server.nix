@@ -56,7 +56,7 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
     local bin_dir=$1 interp
     ln -sfT ${nodejsWrapped}/bin/node "$bin_dir/node"
     while read -rd ''' bin; do
-      interp=$(patchelf --print-interpreter "$bin" 2>/dev/null) && [[ $interp == "$node_rpath" ]] || continue
+      interp=$(patchelf --print-interpreter "$bin" 2>/dev/null) && [[ $interp != "$node_rpath" ]] || continue
       patchelf \
         --set-interpreter "$node_interp" \
         --set-rpath "$node_rpath" \
