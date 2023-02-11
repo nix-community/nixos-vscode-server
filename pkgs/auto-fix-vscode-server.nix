@@ -55,8 +55,8 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
     if [[ -e $bin_dir/node_modules/node-pty/build/Release/spawn-helper ]]; then
       patchelf \
         --set-interpreter "$(patchelf --print-interpreter ${nodejs}/bin/node)" \
-        --add-rpath "$(patchelf --print-rpath ${nodejs}/bin/node)" \
-        $bin_dir/node_modules/node-pty/build/Release/spawn-helper
+        --set-rpath "$(patchelf --print-rpath ${nodejs}/bin/node)" \
+        "$bin_dir/node_modules/node-pty/build/Release/spawn-helper"
     fi
     ln -sfT ${ripgrep}/bin/rg "$bin_dir/node_modules/@vscode/ripgrep/bin/rg"
   }
@@ -65,7 +65,7 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
   if [[ -e $bins_dir ]]; then
     while read -rd ''' bin_dir; do
       patch_bin "$bin_dir"
-    done < <(find "$bins_dir" -mindepth 1 -maxdepth 1 -printf '%P\0')
+    done < <(find "$bins_dir" -mindepth 1 -maxdepth 1 -printf '%p\0')
   else
     mkdir -p "$bins_dir"
   fi
