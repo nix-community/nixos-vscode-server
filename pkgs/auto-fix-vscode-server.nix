@@ -44,36 +44,70 @@ let
 
   nodejsWrapped = if enableFHS then nodejsFHS else nodejs;
 
-in writeShellScript "auto-fix-vscode-server.sh" ''
-  set -euo pipefail
-  PATH=${lib.makeBinPath [ coreutils findutils inotify-tools patchelf ]}
+  patchScript = writeShellScript "patch-vscode-server.sh" ''
+    set -euo pipefail
+    bin_dir=$1
 
-  bins_dir=${installPath}/bin
-  node_interp=$(patchelf --print-interpreter ${nodejs}/bin/node)
-  node_rpath=$(patchelf --print-rpath ${nodejs}/bin/node)
+    echo "Patching VS Code server installation in $bin_dir..." >&2
 
-  patch_bin() {
-    local bin_dir=$1 interp
     ln -sfT ${nodejsWrapped}/bin/node "$bin_dir/node"
+    echo "Patched $bin_dir/node." >&2
+
+    node_interp=$(patchelf --print-interpreter ${nodejs}/bin/node)
+    node_rpath=$(patchelf --print-rpath ${nodejs}/bin/node)
     while read -rd ''' bin; do
       # Check if binary is patchable, e.g. not a statically-linked or non-ELF binary.
       if ! interp=$(patchelf --print-interpreter "$bin" 2>/dev/null); then
         continue
       fi
+
       # Check if it is not already patched for Nix.
       if [[ $interp == "$node_interp" ]]; then
         continue
       fi
+
+      # Patch the binary based on the binary of Node.js,
+      # which should include all dependencies they might need.
       patchelf --set-interpreter "$node_interp" --set-rpath "$node_rpath" "$bin"
+
+      # The actual dependencies are probably less than that of Node.js,
+      # so shrink the RPATH to only keep those that are actually needed.
       patchelf --shrink-rpath "$bin"
+
+      echo "Patched $bin." >&2
     done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
+  '';
+
+in writeShellScript "auto-fix-vscode-server.sh" ''
+  set -euo pipefail
+  PATH=${lib.makeBinPath [ coreutils findutils inotify-tools patchelf ]}
+  bins_dir=${installPath}/bin
+
+  patch_bin_dir () {
+    local bin_dir=$1
+
+    if [[ -e $bin_dir/server.orig.sh ]]; then
+      return 0
+    fi
+
+    mv "$bin_dir/server.sh" "$bin_dir/server.orig.sh"
+    echo <<<EOF > "$bin_dir/server.sh"
+#!/usr/bin/env bash
+
+# Patch the VS Code server installation only if it is not already patched.
+if [[ $(readlink '$bin_dir/node') != ${nodejsWrapped}/bin/node ]]; then
+  ${patchScript} '$bin_dir'
+fi
+
+exec '$bin_dir/server.orig.sh' "\$@"
+EOF
   }
 
   # Fix any existing symlinks before we enter the inotify loop.
   if [[ -e $bins_dir ]]; then
     while read -rd ''' bin_dir; do
-      patch_bin "$bin_dir"
-    done < <(find "$bins_dir" -mindepth 1 -maxdepth 1 -printf '%p\0')
+      patch_bin_dir "$bin_dir"
+    done < <(find "$bins_dir" -mindepth 1 -maxdepth 1 -type d -printf '%p\0')
   else
     mkdir -p "$bins_dir"
   fi
@@ -81,10 +115,11 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
   while IFS=: read -r bin_dir event; do
     # A new version of the VS Code Server is being created.
     if [[ $event == 'CREATE,ISDIR' ]]; then
-      # Create a trigger to know when their node is being created and replace it for our symlink.
-      touch "$bin_dir/node"
-      inotifywait -qq -e DELETE_SELF "$bin_dir/node"
-      patch_bin "$bin_dir"
+      echo "VS Code server is being installed in $bin_dir..."
+      # Create a trigger to know when it is safe to make our modifications.
+      touch "$bin_dir/server.sh"
+      inotifywait -qq -e DELETE_SELF "$bin_dir/server.sh"
+      patch_bin_dir "$bin_dir"
     # The monitored directory is deleted, e.g. when "Uninstall VS Code Server from Host" has been run.
     elif [[ $event == DELETE_SELF ]]; then
       # See the comments above Restart in the service config.
