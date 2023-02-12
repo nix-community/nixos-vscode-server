@@ -17,6 +17,8 @@ moduleConfig:
       '';
     };
 
+    enableFHS = mkEnableOption "a FHS compatible environment";
+
     extraFHSPackages = mkOption {
       type = unspecified;
       default = pkgs: [ ];

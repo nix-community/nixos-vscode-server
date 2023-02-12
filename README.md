@@ -101,8 +101,17 @@ Disclaimer: I am not a very active user of this extension and even NixOS (at the
 }
 ```
 
+### `enableFHS`
+A FHS compatible environment can be enabled to make binaries supplied by extensions work in NixOS without having to patch them. Note that this does come with downsides too, such as problematic support for SUID wrappers, which is why it is not enabled by default.
+
+```nix
+{
+  services.vscode-server.enableFHS = true;
+}
+```
+
 ### `extraFHSPackages`
-Since version `1.75` of VS Code it is necessary to use a FHS compatible environment for VS Code server itself to work. It also makes various extensions work that contain binaries and expect a FHS compatible environment (see #20). If you have an extension that contains such a binary, but requires dependencies that are not already included, you can add them here to make them available to the FHS environment.
+If you have an extensions that require a FHS compatible environment, but their binaries require dependencies that are not already included, you can add them here to make them available to the FHS environment.
 
 ```nix
 {
