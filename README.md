@@ -90,19 +90,17 @@ Put this code into your [home-manager](https://github.com/nix-community/home-man
 
 When using VS Code as released by Microsoft without any special needs, just enabling and starting the service should be enough to make things work. If you have some custom build or needs, there are a few options available that might help you out.
 
-### `nodejsPackage`
-The Node.js version needed for VS Code server is based on the VS Code version of the client. By default it should contain the version of Node.js needed by the latest version of VS Code. Considering this can change in the future and people might have different versions of VS Code running, it has been made configurable.
-
-Disclaimer: I am not a very active user of this extension and even NixOS (at the moment), yet I know how important this extension can be to some people, so at least this way you can workaround it until the default get updated.
+### `enable`
+Whether to enable the service or not.
 
 ```nix
 {
-  services.vscode-server.nodejsPackage = pkgs.nodejs-18_x;
+  services.vscode-server.enable = true;
 }
 ```
 
 ### `enableFHS`
-A FHS compatible environment can be enabled to make binaries supplied by extensions work in NixOS without having to patch them. Note that this does come with downsides too, such as problematic support for SUID wrappers, which is why it is not enabled by default.
+A FHS compatible environment can be enabled to make binaries supplied by extensions work in NixOS without having to patch them. Note that this does come with downsides too, such as problematic support for SUID wrappers and terminals potentially behaving differently from a normal SSH connection, which is why it is not enabled by default.
 
 ```nix
 {
@@ -110,12 +108,27 @@ A FHS compatible environment can be enabled to make binaries supplied by extensi
 }
 ```
 
-### `extraFHSPackages`
-If you have an extensions that require a FHS compatible environment, but their binaries require dependencies that are not already included, you can add them here to make them available to the FHS environment.
+### `nodejsPackage`
+By default VS code server will install the version of Node.js it needs, and this service will automatically patch it, but if you want to minimize disk space or want it to use some specific version of Node.js, you can specify which Nix package for Node.js it should use.
+
+When `enableFHS` is set to `true` it will always require a Nix package for Node.js, but you are not required to set it, as it will default to the latest version used by VS Code.
+
+Disclaimer: I am not a very active user of this extension and even NixOS (at the moment), so it can happen that the default is out of date. At least by having it as an option you can workaround it until the default get updated.
 
 ```nix
 {
-  services.vscode-server.extraFHSPackages = pkgs: builtins.attrValues {
+  services.vscode-server.nodejsPackage = pkgs.nodejs-16_x;
+}
+```
+
+### `extraRuntimeDependencies`
+If you have an extension that requires a FHS compatible environment, but their binaries require dependencies that are not already included, you can add them here to make them available to the FHS environment.
+
+This same list is also used to determine the `RPATH` when automatically patching the ELF binaries.
+
+```nix
+{
+  services.vscode-server.extraRuntimeDependencies = builtins.attrValues {
     inherit (pkgs) curl;
   };
 }
@@ -152,3 +165,7 @@ Try adding this to your VS Code settings json:
 ```
 
 Tested on VS Code version 1.63.2, connecting to the NixOS remote from a MacOS host.
+
+## Future work
+
+More work is needed to see if it is possible to also automatically patch binaries in VS Code extensions without using the FHS compatible environment.
