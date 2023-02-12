@@ -86,21 +86,22 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
   patch_bin_dir () {
     local bin_dir=$1
 
-    if [[ -e $bin_dir/server.orig.sh ]]; then
+    if [[ -e $bin_dir/bin/code-server.orig ]]; then
       return 0
     fi
 
-    mv "$bin_dir/server.sh" "$bin_dir/server.orig.sh"
-    echo <<<EOF > "$bin_dir/server.sh"
+    mv "$bin_dir/bin/code-server" "$bin_dir/bin/code-server.orig"
+    cat <<EOF > "$bin_dir/bin/code-server"
 #!/usr/bin/env bash
 
 # Patch the VS Code server installation only if it is not already patched.
-if [[ $(readlink '$bin_dir/node') != ${nodejsWrapped}/bin/node ]]; then
+if [[ \$(readlink '$bin_dir/node') != ${nodejsWrapped}/bin/node ]]; then
   ${patchScript} '$bin_dir'
 fi
 
-exec '$bin_dir/server.orig.sh' "\$@"
+exec '$bin_dir/bin/code-server.orig' "\$@"
 EOF
+    chmod +x "$bin_dir/bin/code-server"
   }
 
   # Fix any existing symlinks before we enter the inotify loop.
@@ -117,8 +118,9 @@ EOF
     if [[ $event == 'CREATE,ISDIR' ]]; then
       echo "VS Code server is being installed in $bin_dir..."
       # Create a trigger to know when it is safe to make our modifications.
-      touch "$bin_dir/server.sh"
-      inotifywait -qq -e DELETE_SELF "$bin_dir/server.sh"
+      mkdir "$bin_dir/bin"
+      touch "$bin_dir/bin/code-server"
+      inotifywait -qq -e DELETE_SELF "$bin_dir/bin/code-server"
       patch_bin_dir "$bin_dir"
     # The monitored directory is deleted, e.g. when "Uninstall VS Code Server from Host" has been run.
     elif [[ $event == DELETE_SELF ]]; then
