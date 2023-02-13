@@ -45,12 +45,11 @@ let
       '';
     };
   });
-  nodejsWrapped = if enableFHS then nodejsFHS else nodejs;
 
   patchELFScript = writeShellScript "patchelf-vscode-server.sh" ''
     set -euo pipefail
     PATH=${makeBinPath [ coreutils findutils patchelf ]}
-    INTERP=$(cat ${stdenv.cc}/nix-support/dynamic-linker)
+    INTERP=$(< ${stdenv.cc}/nix-support/dynamic-linker)
     RPATH=${makeLibraryPath runtimeDependencies}
     bin_dir=$1
 
@@ -76,7 +75,7 @@ let
       patchelf --shrink-rpath "$elf"
     done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
 
-    # Mark the bin directory as being patched.
+    # Mark the bin directory as being fully patched.
     echo 1 > "$bin_dir/.patched"
   '';
 
@@ -94,8 +93,8 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
 
     echo "Patching Node.js of VS Code server installation in $bin_dir..." >&2
 
-    ${optionalString (nodejsWrapped != null) ''
-      ln -sfT ${nodejsWrapped}/bin/node "$bin_dir/node"
+    ${optionalString (nodejs != null) ''
+      ln -sfT ${if enableFHS then nodejsFHS else nodejs}/bin/node "$bin_dir/node"
     ''}
 
     ${optionalString (!enableFHS) ''
@@ -113,6 +112,7 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
       chmod +x "$bin_dir/node"
     ''}
 
+    # Mark the bin directory as being patched.
     echo 0 > "$bin_dir/.patched"
   }
 
