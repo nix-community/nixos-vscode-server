@@ -62,7 +62,7 @@ let
 
       # Check if the installation is already full patched.
       if [[ ! -e "$bin_dir/.patched" ]] || (( $(< "$bin_dir/.patched") )); then
-        return 0
+        exit 0
       fi
 
       while read -rd ''' elf; do
