@@ -128,9 +128,9 @@ This same list is also used to determine the `RPATH` when automatically patching
 
 ```nix
 {
-  services.vscode-server.extraRuntimeDependencies = builtins.attrValues {
-    inherit (pkgs) curl;
-  };
+  services.vscode-server.extraRuntimeDependencies = pkgs: with pkgs; [
+    curl;
+  ];
 }
 ```
 
