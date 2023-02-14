@@ -34,6 +34,9 @@ let
     targetPkgs = _: runtimeDependencies;
     extraBuildCommands = ''
       if [[ -d /usr/lib/wsl ]]; then
+        # Recursively symlink the lib files necessary for WSL
+        # to properly function under the FHS compatible environment.
+        # The -s stands for symbolic link.
         cp -rsHf /usr/lib/wsl usr/lib/wsl
       fi
     '';
