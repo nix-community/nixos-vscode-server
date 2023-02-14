@@ -29,7 +29,7 @@ let
   ];
 
   nodejs = nodejsPackage;
-  nodejsFHS = buildFHSUserEnv ({
+  nodejsFHS = buildFHSUserEnv {
     name = "node";
     targetPkgs = _: runtimeDependencies;
     extraBuildCommands = ''
@@ -47,7 +47,7 @@ let
         which should allow for easy usage of extensions without Nix-specific modifications.
       '';
     };
-  });
+  };
 
   patchELFScript = writeShellApplication {
     name = "patchelf-vscode-server";
@@ -60,7 +60,7 @@ let
       # NOTE: We don't log here because it won't show up in the output of the user service.
 
       # Check if the installation is already full patched.
-      if [[ ! -e "$bin_dir/.patched" ]] || (( $(< "$bin_dir/.patched") )); then
+      if [[ ! -e $bin_dir/.patched ]] || (( $(< "$bin_dir/.patched") )); then
         exit 0
       fi
 
@@ -157,4 +157,5 @@ let
       done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%f:%e' "$bins_dir")
     '';
   };
+
 in autoFixScript
