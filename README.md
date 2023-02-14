@@ -115,9 +115,9 @@ If you have an extensions that require a FHS compatible environment, but their b
 
 ```nix
 {
-  services.vscode-server.extraFHSPackages = pkgs: builtins.attrValues {
-    inherit (pkgs) curl;
-  };
+  services.vscode-server.extraFHSPackages = pkgs: with pkgs; [
+    curl;
+  ];
 }
 ```
 
