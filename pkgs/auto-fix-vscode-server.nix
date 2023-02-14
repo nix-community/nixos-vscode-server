@@ -26,7 +26,7 @@ let
 
     # mono
     krb5
-  ];
+  ] ++ extraRuntimeDependencies;
 
   nodejs = nodejsPackage;
   nodejsFHS = buildFHSUserEnv {
