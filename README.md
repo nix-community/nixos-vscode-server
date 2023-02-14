@@ -168,4 +168,8 @@ Tested on VS Code version 1.63.2, connecting to the NixOS remote from a MacOS ho
 
 ## Future work
 
+### Patching extensions
 More work is needed to see if it is possible to also automatically patch binaries in VS Code extensions without using the FHS compatible environment.
+
+### WSL support
+Some work has been done to get WSL to work out of the box, but it is not working quite yet.
