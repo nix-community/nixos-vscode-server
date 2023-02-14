@@ -1,6 +1,5 @@
 { lib, buildFHSUserEnv
-, writeShellApplication
-, writeShellScript, coreutils, findutils, inotify-tools, patchelf
+, writeShellApplication, coreutils, findutils, inotify-tools, patchelf
 , stdenv, curl, icu, libunwind, libuuid, lttng-ust, openssl, zlib, krb5
 , enableFHS ? false
 , nodejsPackage ? null
