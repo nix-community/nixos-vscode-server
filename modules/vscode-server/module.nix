@@ -57,7 +57,7 @@ moduleConfig:
         # so rather than creating our own restart mechanism, we leverage systemd to do this for us.
         Restart = "always";
         RestartSec = 0;
-        ExecStart = "${pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix (removeAttrs cfg [ "enable" ])}";
+        ExecStart = "${pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix (removeAttrs cfg [ "enable" ])}/bin/auto-fix-vscode-server";
       };
     })
   ]);
