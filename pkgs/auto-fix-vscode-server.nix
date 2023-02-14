@@ -110,7 +110,7 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
       #!/usr/bin/env sh
 
       # The core utilities are missing in the case of WSL, but required by Node.js.
-      PATH="''${PATH:+''${PATH}:}${makeBinPath [ coreutils ]}"
+      PATH="\''${PATH:+\''${PATH}:}${makeBinPath [ coreutils ]}"
 
       # We leave the rest up to the Bash script
       # to keep having to deal with `sh` compatibility to a minimum.
