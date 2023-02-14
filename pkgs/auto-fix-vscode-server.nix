@@ -120,7 +120,7 @@ let
           PATH="\''${PATH:+\''${PATH}:}${makeBinPath [ coreutils ]}"
 
           # We leave the rest up to the Bash script
-          # to keep having to deal with `sh` compatibility to a minimum.
+          # to keep having to deal with 'sh' compatibility to a minimum.
           ${patchELFScript}/bin/patchelf-vscode-server '$bin_dir'
 
           # Let Node.js take over as if this script never existed.
