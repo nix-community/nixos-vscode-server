@@ -59,8 +59,8 @@ let
     # NOTE: We don't log here because it won't show up in the output of the user service.
 
     # Check if the installation is already full patched.
-    if (( $(< "$bin_dir/.patched") )); then
-      continue;
+    if [[ ! -e "$bin_dir/.patched" ]] || (( $(< "$bin_dir/.patched") )); then
+      return 0
     fi
 
     while read -rd ''' elf; do
@@ -145,7 +145,7 @@ in writeShellScript "auto-fix-vscode-server.sh" ''
       echo "VS Code server is being installed in $actual_dir..." >&2
       touch "$actual_dir/node"
       inotifywait -qq -e DELETE_SELF "$actual_dir/node"
-      patch_bin "$actual_dir" "$bin"
+      patch_bin "$bin"
     # The monitored directory is deleted, e.g. when "Uninstall VS Code Server from Host" has been run.
     elif [[ $event == DELETE_SELF ]]; then
       # See the comments above Restart in the service config.
