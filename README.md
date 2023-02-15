@@ -68,8 +68,13 @@ Possible reasons for having this kind of units are:
 
 However you can safely ignore it. The service will start automatically after reboot once enabled, or you can just start it immediately yourself with:
 
-```
+```bash
 systemctl --user start auto-fix-vscode-server.service
+```
+
+Enabling the user service creates a symlink to the Nix store, but the linked store path could be garbage collected at some point. One workaround to this particular issue is creating the following symlink:
+```bash
+ln -sfT /run/current-system/etc/systemd/user/auto-fix-vscode-server.service ~/.config/systemd/user/auto-fix-vscode-server.service
 ```
 
 ### Home Manager
