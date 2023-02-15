@@ -5,6 +5,7 @@
 , nodejsPackage ? null
 , extraRuntimeDependencies ? [ ]
 , installPath ? "~/.vscode-server"
+, postPatch ? ""
 }:
 
 let
@@ -53,8 +54,6 @@ let
     name = "patchelf-vscode-server";
     runtimeInputs = [ coreutils findutils patchelf ];
     text = ''
-      INTERP=$(< ${stdenv.cc}/nix-support/dynamic-linker)
-      RPATH=${makeLibraryPath runtimeDependencies}
       bin_dir=$1
 
       # NOTE: We don't log here because it won't show up in the output of the user service.
@@ -64,28 +63,34 @@ let
         exit 0
       fi
 
-      while read -rd ''' elf; do
-        # Check if binary is patchable, e.g. not a statically-linked or non-ELF binary.
-        if ! interp=$(patchelf --print-interpreter "$elf" 2>/dev/null); then
-          continue
-        fi
+      ${optionalString (!enableFHS) ''
+        INTERP=$(< ${stdenv.cc}/nix-support/dynamic-linker)
+        RPATH=${makeLibraryPath runtimeDependencies}
+        while read -rd ''' elf; do
+          # Check if binary is patchable, e.g. not a statically-linked or non-ELF binary.
+          if ! interp=$(patchelf --print-interpreter "$elf" 2>/dev/null); then
+            continue
+          fi
 
-        # Check if it is not already patched for Nix.
-        if [[ $interp == "$INTERP" ]]; then
-          continue
-        fi
+          # Check if it is not already patched for Nix.
+          if [[ $interp == "$INTERP" ]]; then
+            continue
+          fi
 
-        # Patch the binary based on the binary of Node.js,
-        # which should include all dependencies they might need.
-        patchelf --set-interpreter "$INTERP" --set-rpath "$RPATH" "$elf"
+          # Patch the binary based on the binary of Node.js,
+          # which should include all dependencies they might need.
+          patchelf --set-interpreter "$INTERP" --set-rpath "$RPATH" "$elf"
 
-        # The actual dependencies are probably less than that of Node.js,
-        # so shrink the RPATH to only keep those that are actually needed.
-        patchelf --shrink-rpath "$elf"
-      done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
+          # The actual dependencies are probably less than that of Node.js,
+          # so shrink the RPATH to only keep those that are actually needed.
+          patchelf --shrink-rpath "$elf"
+        done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
+      ''}
 
       # Mark the bin directory as being fully patched.
       echo 1 > "$bin_dir/.patched"
+
+      ${postPatch}
     '';
   };
 
@@ -110,7 +115,7 @@ let
           ln -sfT ${if enableFHS then nodejsFHS else nodejs}/bin/node "$actual_dir/node"
         ''}
 
-        ${optionalString (!enableFHS) ''
+        ${optionalString (!enableFHS || postPatch != "") ''
           mv "$actual_dir/node" "$actual_dir/node.orig"
           cat <<EOF > "$actual_dir/node"
           #!/usr/bin/env sh

@@ -4,7 +4,7 @@ moduleConfig:
 {
   options.services.vscode-server = let
     inherit (lib) mkEnableOption mkOption;
-    inherit (lib.types) listOf nullOr package str;
+    inherit (lib.types) lines listOf nullOr package str;
   in {
     enable = mkEnableOption "VS Code Server";
 
@@ -38,11 +38,22 @@ moduleConfig:
         The install path.
       '';
     };
+
+    postPatch = mkOption {
+      type = lines;
+      default = "";
+      description = ''
+        Lines of Bash that will be executed after the VS Code server installation has been patched.
+        This can be used as a hook for custom further patching.
+      '';
+    };
   };
 
   config = let
     inherit (lib) mkDefault mkIf mkMerge;
     cfg = config.services.vscode-server;
+    auto-fix-vscode-server = pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix
+      (removeAttrs cfg [ "enable" ]);
   in mkIf cfg.enable (mkMerge [
     {
       services.vscode-server.nodejsPackage = mkIf cfg.enableFHS (mkDefault pkgs.nodejs-16_x);
@@ -57,7 +68,7 @@ moduleConfig:
         # so rather than creating our own restart mechanism, we leverage systemd to do this for us.
         Restart = "always";
         RestartSec = 0;
-        ExecStart = "${pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix (removeAttrs cfg [ "enable" ])}/bin/auto-fix-vscode-server";
+        ExecStart = "${auto-fix-vscode-server}/bin/auto-fix-vscode-server";
       };
     })
   ]);
