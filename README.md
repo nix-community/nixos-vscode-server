@@ -129,7 +129,7 @@ This same list is also used to determine the `RPATH` when automatically patching
 ```nix
 {
   services.vscode-server.extraRuntimeDependencies = pkgs: with pkgs; [
-    curl;
+    curl
   ];
 }
 ```
