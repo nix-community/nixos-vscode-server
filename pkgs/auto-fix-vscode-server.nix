@@ -60,7 +60,7 @@ let
       # NOTE: We don't log here because it won't show up in the output of the user service.
 
       # Check if the installation is already full patched.
-      if [[ ! -e $bin_dir/.patched ]] || (( $(< "$bin_dir/.patched") )); then
+      if [[ -e $bin_dir/.patched ]] && (( $(< "$bin_dir/.patched") )); then
         exit 0
       fi
 
