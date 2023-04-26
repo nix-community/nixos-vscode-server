@@ -54,6 +54,8 @@ let
     name = "patchelf-vscode-server";
     runtimeInputs = [ coreutils findutils patchelf ];
     text = ''
+      INTERP=$(< ${stdenv.cc}/nix-support/dynamic-linker)
+      RPATH=${makeLibraryPath runtimeDependencies}
       bin_dir=$1
 
       # NOTE: We don't log here because it won't show up in the output of the user service.
@@ -64,8 +66,6 @@ let
       fi
 
       ${optionalString (!enableFHS) ''
-        INTERP=$(< ${stdenv.cc}/nix-support/dynamic-linker)
-        RPATH=${makeLibraryPath runtimeDependencies}
         while read -rd ''' elf; do
           # Check if binary is patchable, e.g. not a statically-linked or non-ELF binary.
           if ! interp=$(patchelf --print-interpreter "$elf" 2>/dev/null); then
@@ -90,7 +90,13 @@ let
       # Mark the bin directory as being fully patched.
       echo 1 > "$bin_dir/.patched"
 
-      ${postPatch}
+      ${optionalString (postPatch != "") ''
+        (
+          cd "$bin_dir"
+          # TODO: Make sure they have access to INTERP and RPATH, and CWD = $bin_dir, but nothing else!
+          ${postPatch}
+        )
+      ''}
     '';
   };
 
