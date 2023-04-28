@@ -1,32 +1,46 @@
-{ lib, buildFHSUserEnv
-, writeShellApplication, coreutils, findutils, inotify-tools, patchelf
-, stdenv, curl, icu, libunwind, libuuid, lttng-ust, openssl, zlib, krb5
-, enableFHS ? false
-, nodejsPackage ? null
-, extraRuntimeDependencies ? [ ]
-, installPath ? "~/.vscode-server"
-}:
-
-let
+{
+  lib,
+  buildFHSUserEnv,
+  writeShellApplication,
+  coreutils,
+  findutils,
+  inotify-tools,
+  patchelf,
+  stdenv,
+  curl,
+  icu,
+  libunwind,
+  libuuid,
+  lttng-ust,
+  openssl,
+  zlib,
+  krb5,
+  enableFHS ? false,
+  nodejsPackage ? null,
+  extraRuntimeDependencies ? [ ],
+  installPath ? "~/.vscode-server",
+}: let
   inherit (lib) makeBinPath makeLibraryPath optionalString;
 
   # Based on: https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/applications/editors/vscode/generic.nix
-  runtimeDependencies = [
-    stdenv.cc.libc
-    stdenv.cc.cc
+  runtimeDependencies =
+    [
+      stdenv.cc.libc
+      stdenv.cc.cc
 
-    # dotnet
-    curl
-    icu
-    libunwind
-    libuuid
-    lttng-ust
-    openssl
-    zlib
+      # dotnet
+      curl
+      icu
+      libunwind
+      libuuid
+      lttng-ust
+      openssl
+      zlib
 
-    # mono
-    krb5
-  ] ++ extraRuntimeDependencies;
+      # mono
+      krb5
+    ]
+    ++ extraRuntimeDependencies;
 
   nodejs = nodejsPackage;
   nodejsFHS = buildFHSUserEnv {
@@ -107,26 +121,30 @@ let
         echo "Patching Node.js of VS Code server installation in $actual_dir..." >&2
 
         ${optionalString (nodejs != null) ''
-          ln -sfT ${if enableFHS then nodejsFHS else nodejs}/bin/node "$actual_dir/node"
-        ''}
+        ln -sfT ${
+          if enableFHS
+          then nodejsFHS
+          else nodejs
+        }/bin/node "$actual_dir/node"
+      ''}
 
         ${optionalString (!enableFHS) ''
-          mv "$actual_dir/node" "$actual_dir/node.orig"
-          cat <<EOF > "$actual_dir/node"
-          #!/usr/bin/env sh
+        mv "$actual_dir/node" "$actual_dir/node.orig"
+        cat <<EOF > "$actual_dir/node"
+        #!/usr/bin/env sh
 
-          # The core utilities are missing in the case of WSL, but required by Node.js.
-          PATH="\''${PATH:+\''${PATH}:}${makeBinPath [ coreutils ]}"
+        # The core utilities are missing in the case of WSL, but required by Node.js.
+        PATH="\''${PATH:+\''${PATH}:}${makeBinPath [ coreutils ]}"
 
-          # We leave the rest up to the Bash script
-          # to keep having to deal with 'sh' compatibility to a minimum.
-          ${patchELFScript}/bin/patchelf-vscode-server '$bin_dir'
+        # We leave the rest up to the Bash script
+        # to keep having to deal with 'sh' compatibility to a minimum.
+        ${patchELFScript}/bin/patchelf-vscode-server '$bin_dir'
 
-          # Let Node.js take over as if this script never existed.
-          exec '$bin_dir/node.orig' "\$@"
-          EOF
-          chmod +x "$actual_dir/node"
-        ''}
+        # Let Node.js take over as if this script never existed.
+        exec '$bin_dir/node.orig' "\$@"
+        EOF
+        chmod +x "$actual_dir/node"
+      ''}
 
         # Mark the bin directory as being patched.
         echo 0 > "$bin_dir/.patched"
@@ -157,5 +175,5 @@ let
       done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%f:%e' "$bins_dir")
     '';
   };
-
-in autoFixScript
+in
+  autoFixScript

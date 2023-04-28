@@ -1,6 +1,8 @@
-import ./module.nix ({ name, description, serviceConfig }:
-
-{
+import ./module.nix ({
+  name,
+  description,
+  serviceConfig,
+}: {
   systemd.user.services.${name} = {
     Unit = {
       Description = description;
