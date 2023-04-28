@@ -1,7 +1,9 @@
-moduleConfig:
-{ config, lib, pkgs, ... }:
-
-{
+moduleConfig: {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   options.services.vscode-server = let
     inherit (lib) mkEnableOption mkOption;
     inherit (lib.types) lines listOf nullOr package str;
@@ -52,24 +54,26 @@ moduleConfig:
   config = let
     inherit (lib) mkDefault mkIf mkMerge;
     cfg = config.services.vscode-server;
-    auto-fix-vscode-server = pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix
+    auto-fix-vscode-server =
+      pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix
       (removeAttrs cfg [ "enable" ]);
-  in mkIf cfg.enable (mkMerge [
-    {
-      services.vscode-server.nodejsPackage = mkIf cfg.enableFHS (mkDefault pkgs.nodejs-16_x);
-    }
-    (moduleConfig {
-      name = "auto-fix-vscode-server";
-      description = "Automatically fix the VS Code server used by the remote SSH extension";
-      serviceConfig = {
-        # When a monitored directory is deleted, it will stop being monitored.
-        # Even if it is later recreated it will not restart monitoring it.
-        # Unfortunately the monitor does not kill itself when it stops monitoring,
-        # so rather than creating our own restart mechanism, we leverage systemd to do this for us.
-        Restart = "always";
-        RestartSec = 0;
-        ExecStart = "${auto-fix-vscode-server}/bin/auto-fix-vscode-server";
-      };
-    })
-  ]);
+  in
+    mkIf cfg.enable (mkMerge [
+      {
+        services.vscode-server.nodejsPackage = mkIf cfg.enableFHS (mkDefault pkgs.nodejs-16_x);
+      }
+      (moduleConfig {
+        name = "auto-fix-vscode-server";
+        description = "Automatically fix the VS Code server used by the remote SSH extension";
+        serviceConfig = {
+          # When a monitored directory is deleted, it will stop being monitored.
+          # Even if it is later recreated it will not restart monitoring it.
+          # Unfortunately the monitor does not kill itself when it stops monitoring,
+          # so rather than creating our own restart mechanism, we leverage systemd to do this for us.
+          Restart = "always";
+          RestartSec = 0;
+          ExecStart = "${auto-fix-vscode-server}/bin/auto-fix-vscode-server";
+        };
+      })
+    ]);
 }
