@@ -128,10 +128,8 @@
       bins_dir=${installPath}/bin
 
       patch_bin () {
-        local bin=$1 actual_dir=$bins_dir/$1 patched_file orig_node
+        local bin=$1 actual_dir=$bins_dir/$1 patched_file=${installPath}/.$bin.patched
         bin=''${bin:0:40}
-        patched_file=${installPath}/.$bin.patched
-        orig_node=${installPath}/.$bin.node
 
         if [[ -e $actual_dir/.patched ]]; then
           return 0
@@ -148,6 +146,7 @@
       ''}
 
         ${optionalString (!enableFHS || postPatch != "") ''
+        local orig_node=${installPath}/.$bin.node
         mv "$actual_dir/node" "$orig_node"
         cat <<EOF > "$actual_dir/node"
         #!${runtimeShell}
