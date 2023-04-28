@@ -128,8 +128,10 @@
       bins_dir=${installPath}/bin
 
       patch_bin () {
-        local bin=$1 actual_dir=$bins_dir/$1 patched_file=${installPath}/.$bin.patched
+        local bin=$1
         bin=''${bin:0:40}
+        local actual_dir=$bins_dir/$1
+        local patched_file=${installPath}/.$bin.patched
 
         if [[ -e $actual_dir/.patched ]]; then
           return 0
