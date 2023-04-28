@@ -148,6 +148,19 @@ The installation path for VS Code server is configurable and the default can dif
 }
 ```
 
+### `postPatch`
+The goal of this project is to make VS Code server work with NixOS, anything more is outside of the scope of the project, but if you want additional things to be done, you can use this hook to run a shell script after the patching is done.
+
+```nix
+{
+  services.vscode-server.postPatch = ''
+    bin=$1
+    bin_dir=${config.services.vscode-server.installPath}/bin/$bin
+    # ...
+  '';
+}
+```
+
 ## Troubleshooting
 
 This is not really an issue with this project per se, but with systemd user services in NixOS in general. After updating it can be necessary to first disable the service again:

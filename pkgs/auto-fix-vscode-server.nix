@@ -2,6 +2,7 @@
   lib,
   buildFHSUserEnv,
   runtimeShell,
+  writeShellScript,
   writeShellApplication,
   coreutils,
   findutils,
@@ -116,7 +117,7 @@
       # Mark the bin directory as being fully patched.
       echo 1 > "$patched_file"
 
-      ${postPatch}
+      ${optionalString (postPatch != "") ''${writeShellScript "post-patchelf-vscode-server" postPatch} "$bin"''}
     '';
   };
 
