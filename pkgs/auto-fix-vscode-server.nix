@@ -1,6 +1,7 @@
 {
   lib,
   buildFHSUserEnv,
+  runtimeShell,
   writeShellApplication,
   coreutils,
   findutils,
@@ -131,7 +132,7 @@
         ${optionalString (!enableFHS) ''
         mv "$actual_dir/node" "$actual_dir/node.orig"
         cat <<EOF > "$actual_dir/node"
-        #!/usr/bin/env sh
+        #!${runtimeShell}
 
         # The core utilities are missing in the case of WSL, but required by Node.js.
         PATH="\''${PATH:+\''${PATH}:}${makeBinPath [ coreutils ]}"
