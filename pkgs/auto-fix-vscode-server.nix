@@ -69,8 +69,8 @@
     name = "patchelf-vscode-server";
     runtimeInputs = [ coreutils findutils patchelf ];
     text = ''
-      bin_dir=$1
-      bin=$2
+      bin=$1
+      bin_dir=${installPath}/bin/$bin
       patched_file=${installPath}/.$bin.patched
       orig_node=${installPath}/.$bin.node
 
@@ -127,9 +127,8 @@
       bins_dir=${installPath}/bin
 
       patch_bin () {
-        local bin=$1 actual_dir=$bins_dir/$1 bin_dir patched_file orig_node
+        local bin=$1 actual_dir=$bins_dir/$1 patched_file orig_node
         bin=''${bin:0:40}
-        bin_dir=$bins_dir/$bin
         patched_file=${installPath}/.$bin.patched
         orig_node=${installPath}/.$bin.node
 
@@ -157,7 +156,7 @@
 
         # We leave the rest up to the Bash script
         # to keep having to deal with 'sh' compatibility to a minimum.
-        ${patchELFScript}/bin/patchelf-vscode-server '$bin_dir' '$bin'
+        ${patchELFScript}/bin/patchelf-vscode-server '$bin'
 
         # Let Node.js take over as if this script never existed.
         exec '$orig_node' "\$@"
