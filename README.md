@@ -14,7 +14,7 @@ you'll have to manually enable the service for each user (see below).
 ```nix
 {
   imports = [
-    (fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master")
+    (fetchTarball "https://github.com/nix-community/nixos-vscode-server/tarball/master")
   ];
 
   services.vscode-server.enable = true;
@@ -25,7 +25,7 @@ you'll have to manually enable the service for each user (see below).
 
 ```nix
 {
-  inputs.vscode-server.url = "github:msteen/nixos-vscode-server";
+  inputs.vscode-server.url = "github:nix-community/nixos-vscode-server";
 
   outputs = { self, nixpkgs, vscode-server }: {
     nixosConfigurations.yourhostname = nixpkgs.lib.nixosSystem {
