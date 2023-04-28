@@ -70,26 +70,32 @@
     runtimeInputs = [ coreutils findutils patchelf ];
     text = ''
       bin_dir=$1
+      bin=$2
+      patched_file=${installPath}/.$bin.patched
+      orig_node=${installPath}/.$bin.node
 
       # NOTE: We don't log here because it won't show up in the output of the user service.
 
       # Check if the installation is already full patched.
-      if [[ ! -e $bin_dir/.patched ]] || (( $(< "$bin_dir/.patched") )); then
+      if [[ ! -e $patched_file ]] || (( $(< "$patched_file") )); then
         exit 0
       fi
 
       ${optionalString (!enableFHS) ''
         INTERP=$(< ${stdenv.cc}/nix-support/dynamic-linker)
         RPATH=${makeLibraryPath runtimeDependencies}
-        while read -rd ''' elf; do
+
+        patch_elf () {
+          local elf=$1 interp
+
           # Check if binary is patchable, e.g. not a statically-linked or non-ELF binary.
           if ! interp=$(patchelf --print-interpreter "$elf" 2>/dev/null); then
-            continue
+            return
           fi
 
           # Check if it is not already patched for Nix.
           if [[ $interp == "$INTERP" ]]; then
-            continue
+            return
           fi
 
           # Patch the binary based on the binary of Node.js,
@@ -99,11 +105,16 @@
           # The actual dependencies are probably less than that of Node.js,
           # so shrink the RPATH to only keep those that are actually needed.
           patchelf --shrink-rpath "$elf"
+        }
+
+        patch_elf "$orig_node"
+        while read -rd ''' elf; do
+          patch_elf "$elf"
         done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
       ''}
 
       # Mark the bin directory as being fully patched.
-      echo 1 > "$bin_dir/.patched"
+      echo 1 > "$patched_file"
 
       ${postPatch}
     '';
@@ -116,9 +127,11 @@
       bins_dir=${installPath}/bin
 
       patch_bin () {
-        local bin=$1 actual_dir=$bins_dir/$1 bin_dir
+        local bin=$1 actual_dir=$bins_dir/$1 bin_dir patched_file orig_node
         bin=''${bin:0:40}
         bin_dir=$bins_dir/$bin
+        patched_file=${installPath}/.$bin.patched
+        orig_node=${installPath}/.$bin.node
 
         if [[ -e $actual_dir/.patched ]]; then
           return 0
@@ -135,7 +148,7 @@
       ''}
 
         ${optionalString (!enableFHS || postPatch != "") ''
-        mv "$actual_dir/node" "$actual_dir/node.orig"
+        mv "$actual_dir/node" "$orig_node"
         cat <<EOF > "$actual_dir/node"
         #!${runtimeShell}
 
@@ -144,16 +157,16 @@
 
         # We leave the rest up to the Bash script
         # to keep having to deal with 'sh' compatibility to a minimum.
-        ${patchELFScript}/bin/patchelf-vscode-server '$bin_dir'
+        ${patchELFScript}/bin/patchelf-vscode-server '$bin_dir' '$bin'
 
         # Let Node.js take over as if this script never existed.
-        exec '$bin_dir/node.orig' "\$@"
+        exec '$orig_node' "\$@"
         EOF
         chmod +x "$actual_dir/node"
       ''}
 
         # Mark the bin directory as being patched.
-        echo 0 > "$bin_dir/.patched"
+        echo 0 > "$patched_file"
       }
 
       # Fix any existing symlinks before we enter the inotify loop.
