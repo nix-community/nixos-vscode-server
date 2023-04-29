@@ -1,32 +1,50 @@
-{ lib, buildFHSUserEnv ? buildFHSEnv, buildFHSEnv ? buildFHSUserEnv
-, writeShellApplication, coreutils, findutils, inotify-tools, patchelf
-, stdenv, curl, icu, libunwind, libuuid, lttng-ust, openssl, zlib, krb5
-, enableFHS ? false
-, nodejsPackage ? null
-, extraRuntimeDependencies ? [ ]
-, installPath ? "~/.vscode-server"
-}:
-
-let
+{
+  lib,
+  buildFHSUserEnv ? buildFHSEnv,
+  buildFHSEnv ? buildFHSUserEnv,
+  runtimeShell,
+  writeShellScript,
+  writeShellApplication,
+  coreutils,
+  findutils,
+  inotify-tools,
+  patchelf,
+  stdenv,
+  curl,
+  icu,
+  libunwind,
+  libuuid,
+  lttng-ust,
+  openssl,
+  zlib,
+  krb5,
+  enableFHS ? false,
+  nodejsPackage ? null,
+  extraRuntimeDependencies ? [ ],
+  installPath ? "~/.vscode-server",
+  postPatch ? "",
+}: let
   inherit (lib) makeBinPath makeLibraryPath optionalString;
 
   # Based on: https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/applications/editors/vscode/generic.nix
-  runtimeDependencies = [
-    stdenv.cc.libc
-    stdenv.cc.cc
+  runtimeDependencies =
+    [
+      stdenv.cc.libc
+      stdenv.cc.cc
 
-    # dotnet
-    curl
-    icu
-    libunwind
-    libuuid
-    lttng-ust
-    openssl
-    zlib
+      # dotnet
+      curl
+      icu
+      libunwind
+      libuuid
+      lttng-ust
+      openssl
+      zlib
 
-    # mono
-    krb5
-  ] ++ extraRuntimeDependencies;
+      # mono
+      krb5
+    ]
+    ++ extraRuntimeDependencies;
 
   nodejs = nodejsPackage;
   nodejsFHS = buildFHSUserEnv {
@@ -53,39 +71,54 @@ let
     name = "patchelf-vscode-server";
     runtimeInputs = [ coreutils findutils patchelf ];
     text = ''
-      INTERP=$(< ${stdenv.cc}/nix-support/dynamic-linker)
-      RPATH=${makeLibraryPath runtimeDependencies}
-      bin_dir=$1
+      bin=$1
+      bin_dir=${installPath}/bin/$bin
+      patched_file=${installPath}/.$bin.patched
+      orig_node=${installPath}/.$bin.node
 
       # NOTE: We don't log here because it won't show up in the output of the user service.
 
       # Check if the installation is already full patched.
-      if [[ ! -e $bin_dir/.patched ]] || (( $(< "$bin_dir/.patched") )); then
+      if [[ ! -e $patched_file ]] || (( $(< "$patched_file") )); then
         exit 0
       fi
 
-      while read -rd ''' elf; do
-        # Check if binary is patchable, e.g. not a statically-linked or non-ELF binary.
-        if ! interp=$(patchelf --print-interpreter "$elf" 2>/dev/null); then
-          continue
-        fi
+      ${optionalString (!enableFHS) ''
+        INTERP=$(< ${stdenv.cc}/nix-support/dynamic-linker)
+        RPATH=${makeLibraryPath runtimeDependencies}
 
-        # Check if it is not already patched for Nix.
-        if [[ $interp == "$INTERP" ]]; then
-          continue
-        fi
+        patch_elf () {
+          local elf=$1 interp
 
-        # Patch the binary based on the binary of Node.js,
-        # which should include all dependencies they might need.
-        patchelf --set-interpreter "$INTERP" --set-rpath "$RPATH" "$elf"
+          # Check if binary is patchable, e.g. not a statically-linked or non-ELF binary.
+          if ! interp=$(patchelf --print-interpreter "$elf" 2>/dev/null); then
+            return
+          fi
 
-        # The actual dependencies are probably less than that of Node.js,
-        # so shrink the RPATH to only keep those that are actually needed.
-        patchelf --shrink-rpath "$elf"
-      done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
+          # Check if it is not already patched for Nix.
+          if [[ $interp == "$INTERP" ]]; then
+            return
+          fi
+
+          # Patch the binary based on the binary of Node.js,
+          # which should include all dependencies they might need.
+          patchelf --set-interpreter "$INTERP" --set-rpath "$RPATH" "$elf"
+
+          # The actual dependencies are probably less than that of Node.js,
+          # so shrink the RPATH to only keep those that are actually needed.
+          patchelf --shrink-rpath "$elf"
+        }
+
+        patch_elf "$orig_node"
+        while read -rd ''' elf; do
+          patch_elf "$elf"
+        done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
+      ''}
 
       # Mark the bin directory as being fully patched.
-      echo 1 > "$bin_dir/.patched"
+      echo 1 > "$patched_file"
+
+      ${optionalString (postPatch != "") ''${writeShellScript "post-patchelf-vscode-server" postPatch} "$bin"''}
     '';
   };
 
@@ -96,9 +129,10 @@ let
       bins_dir=${installPath}/bin
 
       patch_bin () {
-        local bin=$1 actual_dir=$bins_dir/$1 bin_dir
+        local bin=$1
         bin=''${bin:0:40}
-        bin_dir=$bins_dir/$bin
+        local actual_dir=$bins_dir/$1
+        local patched_file=${installPath}/.$bin.patched
 
         if [[ -e $actual_dir/.patched ]]; then
           return 0
@@ -107,29 +141,34 @@ let
         echo "Patching Node.js of VS Code server installation in $actual_dir..." >&2
 
         ${optionalString (nodejs != null) ''
-          ln -sfT ${if enableFHS then nodejsFHS else nodejs}/bin/node "$actual_dir/node"
-        ''}
+        ln -sfT ${
+          if enableFHS
+          then nodejsFHS
+          else nodejs
+        }/bin/node "$actual_dir/node"
+      ''}
 
-        ${optionalString (!enableFHS) ''
-          mv "$actual_dir/node" "$actual_dir/node.orig"
-          cat <<EOF > "$actual_dir/node"
-          #!/usr/bin/env sh
+        ${optionalString (!enableFHS || postPatch != "") ''
+        local orig_node=${installPath}/.$bin.node
+        mv "$actual_dir/node" "$orig_node"
+        cat <<EOF > "$actual_dir/node"
+        #!${runtimeShell}
 
-          # The core utilities are missing in the case of WSL, but required by Node.js.
-          PATH="\''${PATH:+\''${PATH}:}${makeBinPath [ coreutils ]}"
+        # The core utilities are missing in the case of WSL, but required by Node.js.
+        PATH="\''${PATH:+\''${PATH}:}${makeBinPath [ coreutils ]}"
 
-          # We leave the rest up to the Bash script
-          # to keep having to deal with 'sh' compatibility to a minimum.
-          ${patchELFScript}/bin/patchelf-vscode-server '$bin_dir'
+        # We leave the rest up to the Bash script
+        # to keep having to deal with 'sh' compatibility to a minimum.
+        ${patchELFScript}/bin/patchelf-vscode-server '$bin'
 
-          # Let Node.js take over as if this script never existed.
-          exec '$bin_dir/node.orig' "\$@"
-          EOF
-          chmod +x "$actual_dir/node"
-        ''}
+        # Let Node.js take over as if this script never existed.
+        exec '$orig_node' "\$@"
+        EOF
+        chmod +x "$actual_dir/node"
+      ''}
 
         # Mark the bin directory as being patched.
-        echo 0 > "$bin_dir/.patched"
+        echo 0 > "$patched_file"
       }
 
       # Fix any existing symlinks before we enter the inotify loop.
@@ -157,5 +196,5 @@ let
       done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%f:%e' "$bins_dir")
     '';
   };
-
-in autoFixScript
+in
+  autoFixScript

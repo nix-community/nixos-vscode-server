@@ -14,7 +14,7 @@ you'll have to manually enable the service for each user (see below).
 ```nix
 {
   imports = [
-    (fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master")
+    (fetchTarball "https://github.com/nix-community/nixos-vscode-server/tarball/master")
   ];
 
   services.vscode-server.enable = true;
@@ -25,7 +25,7 @@ you'll have to manually enable the service for each user (see below).
 
 ```nix
 {
-  inputs.vscode-server.url = "github:msteen/nixos-vscode-server";
+  inputs.vscode-server.url = "github:nix-community/nixos-vscode-server";
 
   outputs = { self, nixpkgs, vscode-server }: {
     nixosConfigurations.yourhostname = nixpkgs.lib.nixosSystem {
@@ -145,6 +145,19 @@ The installation path for VS Code server is configurable and the default can dif
 ```nix
 {
   services.vscode-server.installPath = "~/.vscode-server-oss";
+}
+```
+
+### `postPatch`
+The goal of this project is to make VS Code server work with NixOS, anything more is outside of the scope of the project, but if you want additional things to be done, you can use this hook to run a shell script after the patching is done.
+
+```nix
+{
+  services.vscode-server.postPatch = ''
+    bin=$1
+    bin_dir=${config.services.vscode-server.installPath}/bin/$bin
+    # ...
+  '';
 }
 ```
 
