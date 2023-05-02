@@ -134,7 +134,7 @@
         local actual_dir=$bins_dir/$1
         local patched_file=${installPath}/.$bin.patched
 
-        if [[ -e $actual_dir/.patched ]]; then
+        if [[ -e $patched_file ]]; then
           return 0
         fi
 
