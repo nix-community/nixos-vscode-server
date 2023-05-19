@@ -30,7 +30,7 @@ you'll have to manually enable the service for each user (see below).
   outputs = { self, nixpkgs, vscode-server }: {
     nixosConfigurations.yourhostname = nixpkgs.lib.nixosSystem {
       modules = [
-        vscode-server.nixosModule
+        vscode-server.nixosModules.default
         ({ config, pkgs, ... }: {
           services.vscode-server.enable = true;
         })
