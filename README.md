@@ -28,12 +28,12 @@ you'll have to manually enable the service for each user (see below).
   inputs.vscode-server.url = "github:nix-community/nixos-vscode-server";
 
   outputs = { self, nixpkgs, vscode-server }: {
-    nixosConfigurations.yourhostname = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.example = nixpkgs.lib.nixosSystem {
       modules = [
         vscode-server.nixosModules.default
-        ({ config, pkgs, ... }: {
+        {
           services.vscode-server.enable = true;
-        })
+        }
       ];
     };
   };
@@ -42,7 +42,11 @@ you'll have to manually enable the service for each user (see below).
 
 #### Enable the service
 
-And then enable them for the relevant users:
+The systemd user service has been updated to be enabled by default for all interactive users, so there is no more need to manually enable it.
+
+If you have the need to enable it for some other user that is not covered by this default, the following instructions are still valid:
+
+To manually enable it for the currently logged-in user:
 
 ```bash
 systemctl --user enable auto-fix-vscode-server.service
