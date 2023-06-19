@@ -2,6 +2,8 @@
 
 Experimental support for VS Code Server in NixOS. The NodeJS by default supplied by VS Code cannot be used within NixOS due to missing hardcoded paths, so it is automatically replaced by a symlink to a compatible version of NodeJS that does work under NixOS.
 
+Update: There is now also support for [VS Code CLI for making tunnels](https://code.visualstudio.com/docs/remote/tunnels#_using-the-code-cli)! The options are the same as for VS Code Server, but are configured under `services.vscode-cli`. So all the documentation for Server is also applicable to CLI.
+
 ## Installation
 
 ### NixOS module

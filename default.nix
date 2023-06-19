@@ -1,1 +1,1 @@
-import ./modules/vscode-server
+{ imports = builtins.attrValues (import ./modules/nixos.nix); }

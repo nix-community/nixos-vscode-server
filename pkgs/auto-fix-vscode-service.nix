@@ -18,10 +18,11 @@
   openssl,
   zlib,
   krb5,
+  name,
+  installPath,
   enableFHS ? false,
   nodejsPackage ? null,
   extraRuntimeDependencies ? [ ],
-  installPath ? "~/.vscode-server",
   postPatch ? "",
 }: let
   inherit (lib) makeBinPath makeLibraryPath optionalString;
