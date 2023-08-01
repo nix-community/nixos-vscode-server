@@ -1,11 +1,6 @@
-import ./module.nix ({
-  name,
-  description,
-  serviceConfig,
-}: {
-  systemd.user.services.${name} = {
-    enable = true;
-    inherit description serviceConfig;
-    wantedBy = [ "default.target" ];
-  };
-})
+{ lib }:
+import (
+  if lib ? hm
+  then ./home.nix
+  else ./nixos.nix
+)

@@ -4,24 +4,27 @@ Experimental support for VS Code Server in NixOS. The NodeJS by default supplied
 
 ## Installation
 
-### NixOS module
+The support for VS Code Server is implemented as a systemd module. Both NixOS and Home Manager are supported, but since they each configure systemd modules slightly differently, a custom module for each had to be defined. To install, all you need to do is import the module and configure it as needed, at least enabling it.
 
-You can add the module to your system in various ways. After the installation
-you'll have to manually enable the service for each user (see below).
+These instructions also work for Home Manager. You will just have to add the import and configuration in your Home Manager configuration instead.
 
-#### Install as a tarball
+### Install as a tarball
 
 ```nix
 {
   imports = [
+    # This will import the NixOS or HM module depending on whether this is added to a NixOS or HM configuration.
     (fetchTarball "https://github.com/nix-community/nixos-vscode-server/tarball/master")
+    # Or if you want to be explicit about it for some reason:
+    # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/nixos.nix"
+    # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
   ];
 
   services.vscode-server.enable = true;
 }
 ```
 
-#### Install as a flake
+### Install as a flake
 
 ```nix
 {
@@ -30,7 +33,11 @@ you'll have to manually enable the service for each user (see below).
   outputs = { self, nixpkgs, vscode-server }: {
     nixosConfigurations.example = nixpkgs.lib.nixosSystem {
       modules = [
+        # This will import the NixOS or HM module depending on whether this is added to a NixOS or HM configuration.
         vscode-server.nixosModules.default
+        # Or if you want to be explicit about it for some reason:
+        # vscode-server.nixosModules.nixos
+        # vscode-server.nixosModules.home
         {
           services.vscode-server.enable = true;
         }
@@ -79,20 +86,6 @@ systemctl --user start auto-fix-vscode-server.service
 Enabling the user service creates a symlink to the Nix store, but the linked store path could be garbage collected at some point. One workaround to this particular issue is creating the following symlink:
 ```bash
 ln -sfT /run/current-system/etc/systemd/user/auto-fix-vscode-server.service ~/.config/systemd/user/auto-fix-vscode-server.service
-```
-
-### Home Manager
-
-Put this code into your [home-manager](https://github.com/nix-community/home-manager) configuration i.e. in `~/.config/nixpkgs/home.nix`:
-
-```nix
-{
-  imports = [
-    "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
-  ];
-
-  services.vscode-server.enable = true;
-}
 ```
 
 ## Usage

@@ -13,6 +13,7 @@
     {
       nixosModule = self.nixosModules.default; # Deprecrated, but perhaps still in use.
       nixosModules.default = import ./modules/vscode-server;
+      nixosModules.nixos = import ./modules/vscode-server/nixos.nix; # Silly, but explicit.
       nixosModules.home = self.homeModules.default; # Backwards compatiblity.
       homeModules.default = import ./modules/vscode-server/home.nix; # Consistent with homeConfigurations.
     }
