@@ -138,6 +138,9 @@
         if [[ $bins_dir == "${installPath}/cli/servers" ]]; then
           if [[ $bin == *".staging" ]]; then
             bin=''${bin%%.staging}
+            if [[ -e $bins_dir/''${bin} ]]; then
+              rm -rf "$bins_dir/''${bin:?}"
+            fi
             mv "$bins_dir/''${bin}.staging" "$bins_dir/''${bin}"
           fi
           local actual_dir=$bins_dir/$bin/server
