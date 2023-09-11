@@ -136,6 +136,10 @@
         local bin=$1
         bin="''${bin//[$' \t\n\r']}"
         if [[ $bins_dir == "${installPath}/cli/servers" ]]; then
+          if [[ $bin == *".staging" ]]; then
+            bin=''${bin%%.staging}
+            mv "$bins_dir/''${bin}.staging" "$bins_dir/''${bin}"
+          fi
           local actual_dir=$bins_dir/$bin/server
         else
           local actual_dir=$bins_dir/$bin
