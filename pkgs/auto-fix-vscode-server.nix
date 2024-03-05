@@ -21,7 +21,7 @@
   enableFHS ? false,
   nodejsPackage ? null,
   extraRuntimeDependencies ? [ ],
-  installPath ? "~/.vscode-server",
+  installPath ? "$HOME/.vscode-server",
   postPatch ? "",
 }: let
   inherit (lib) makeBinPath makeLibraryPath optionalString;
@@ -71,8 +71,8 @@
     name = "patchelf-vscode-server";
     runtimeInputs = [ coreutils findutils patchelf ];
     text = ''
-      bin=$1
-      bin_dir=${installPath}/bin/$bin
+      bin=$(basename "$(dirname "$1")")
+      bin_dir=$1
       patched_file=${installPath}/.$bin.patched
       orig_node=${installPath}/.$bin.node
 
@@ -126,12 +126,27 @@
     name = "auto-fix-vscode-server";
     runtimeInputs = [ coreutils findutils inotify-tools ];
     text = ''
-      bins_dir=${installPath}/bin
+      if [[ -e ${installPath}/cli/servers ]]; then
+        bins_dir=${installPath}/cli/servers
+      else
+        bins_dir=${installPath}/bin
+      fi
 
       patch_bin () {
         local bin=$1
-        bin=''${bin:0:40}
-        local actual_dir=$bins_dir/$1
+        bin="''${bin//[$' \t\n\r']}"
+        if [[ $bins_dir == "${installPath}/cli/servers" ]]; then
+          if [[ $bin == *".staging" ]]; then
+            bin=''${bin%%.staging}
+            if [[ -e $bins_dir/''${bin} ]]; then
+              rm -rf "$bins_dir/''${bin:?}"
+            fi
+            mv "$bins_dir/''${bin}.staging" "$bins_dir/''${bin}"
+          fi
+          local actual_dir=$bins_dir/$bin/server
+        else
+          local actual_dir=$bins_dir/$bin
+        fi
         local patched_file=${installPath}/.$bin.patched
 
         if [[ -e $patched_file ]]; then
@@ -159,7 +174,7 @@
 
         # We leave the rest up to the Bash script
         # to keep having to deal with 'sh' compatibility to a minimum.
-        ${patchELFScript}/bin/patchelf-vscode-server '$bin'
+        ${patchELFScript}/bin/patchelf-vscode-server '$actual_dir'
 
         # Let Node.js take over as if this script never existed.
         exec '$orig_node' "\$@"
