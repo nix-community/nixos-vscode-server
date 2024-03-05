@@ -15,7 +15,7 @@ moduleConfig: {
     nodejsPackage = mkOption {
       type = nullOr package;
       default = null;
-      example = pkgs.nodejs-16_x;
+      example = pkgs.nodejs_20;
       description = ''
         Whether to use a specific Node.js rather than the version supplied by VS Code server.
       '';
@@ -60,7 +60,7 @@ moduleConfig: {
   in
     mkIf cfg.enable (mkMerge [
       {
-        services.vscode-server.nodejsPackage = mkIf cfg.enableFHS (mkDefault pkgs.nodejs-16_x);
+        services.vscode-server.nodejsPackage = mkIf cfg.enableFHS (mkDefault pkgs.nodejs_20);
       }
       (moduleConfig {
         name = "auto-fix-vscode-server";
