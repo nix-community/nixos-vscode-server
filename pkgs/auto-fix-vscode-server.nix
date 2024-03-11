@@ -72,9 +72,7 @@
     runtimeInputs = [ coreutils findutils patchelf ];
     text = ''
       bin=$1
-      bin_dir=${installPath}/bin/$bin
       patched_file=${installPath}/.$bin.patched
-      orig_node=${installPath}/.$bin.node
 
       # NOTE: We don't log here because it won't show up in the output of the user service.
 
@@ -84,6 +82,8 @@
       fi
 
       ${optionalString (!enableFHS) ''
+        bin_dir=${installPath}/bin/$bin
+        orig_node=${installPath}/.$bin.node
         INTERP=$(< ${stdenv.cc}/nix-support/dynamic-linker)
         RPATH=${makeLibraryPath runtimeDependencies}
 
