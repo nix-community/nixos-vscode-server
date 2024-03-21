@@ -134,6 +134,21 @@
           return 0
         fi
 
+        # Backwards compatibility with previous versions of nixos-vscode-server.
+        local old_patched_file
+        old_patched_file="$(basename "$actual_dir")"
+        if [[ $old_patched_file == "server" ]]; then
+          old_patched_file="$(basename "$(dirname "$actual_dir")")"
+          old_patched_file="${installPath}/.''${old_patched_file%%.*}.patched"
+        else
+          old_patched_file="${installPath}/.''${old_patched_file%%-*}.patched"
+        fi
+        if [[ -e $old_patched_file ]]; then
+          echo "Migrating old nixos-vscode-server patch marker file to new location in $actual_dir." >&2
+          cp "$old_patched_file" "$patched_file"
+          return 0
+        fi
+
         echo "Patching Node.js of VS Code server installation in $actual_dir..." >&2
 
         mv "$actual_dir/node" "$actual_dir/node.patched"
