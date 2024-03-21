@@ -144,7 +144,7 @@ The installation path for VS Code server is configurable and the default can dif
 
 ```nix
 {
-  services.vscode-server.installPath = "~/.vscode-server-oss";
+  services.vscode-server.installPath = "$HOME/.vscode-server-oss";
 }
 ```
 
