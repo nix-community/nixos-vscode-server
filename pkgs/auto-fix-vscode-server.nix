@@ -71,10 +71,8 @@
     name = "patchelf-vscode-server";
     runtimeInputs = [ coreutils findutils patchelf ];
     text = ''
-      bin=$1
-      bin_dir=${installPath}/bin/$bin
-      patched_file=${installPath}/.$bin.patched
-      orig_node=${installPath}/.$bin.node
+      bin_dir="$1"
+      patched_file="$bin_dir/.nixos-patched"
 
       # NOTE: We don't log here because it won't show up in the output of the user service.
 
@@ -109,7 +107,6 @@
           patchelf --shrink-rpath "$elf"
         }
 
-        patch_elf "$orig_node"
         while read -rd ''' elf; do
           patch_elf "$elf"
         done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
@@ -126,13 +123,12 @@
     name = "auto-fix-vscode-server";
     runtimeInputs = [ coreutils findutils inotify-tools ];
     text = ''
-      bins_dir=${installPath}/bin
+      bins_dir_1=${installPath}/bin
+      bins_dir_2=${installPath}/cli/servers
 
       patch_bin () {
-        local bin=$1
-        bin=''${bin:0:40}
-        local actual_dir=$bins_dir/$1
-        local patched_file=${installPath}/.$bin.patched
+        local actual_dir="$1"
+        local patched_file="$actual_dir/.nixos-patched"
 
         if [[ -e $patched_file ]]; then
           return 0
@@ -140,17 +136,13 @@
 
         echo "Patching Node.js of VS Code server installation in $actual_dir..." >&2
 
-        ${optionalString (nodejs != null) ''
-        ln -sfT ${
-          if enableFHS
-          then nodejsFHS
-          else nodejs
-        }/bin/node "$actual_dir/node"
+        mv "$actual_dir/node" "$actual_dir/node.patched"
+
+        ${optionalString (enableFHS) ''
+        ln -sfT ${nodejsFHS}/bin/node "$actual_dir/node"
       ''}
 
         ${optionalString (!enableFHS || postPatch != "") ''
-        local orig_node=${installPath}/.$bin.node
-        mv "$actual_dir/node" "$orig_node"
         cat <<EOF > "$actual_dir/node"
         #!${runtimeShell}
 
@@ -159,10 +151,15 @@
 
         # We leave the rest up to the Bash script
         # to keep having to deal with 'sh' compatibility to a minimum.
-        ${patchELFScript}/bin/patchelf-vscode-server '$bin'
+        ${patchELFScript}/bin/patchelf-vscode-server \$(dirname "\$0")
 
         # Let Node.js take over as if this script never existed.
-        exec '$orig_node' "\$@"
+        ${
+          let nodePath = (if (nodejs != null)
+          then "${if enableFHS then nodejsFHS else nodejs}/bin/node"
+          else ''\$(dirname "\$0")/node.patched'');
+          in ''exec "${nodePath}" "\$@"''
+        }
         EOF
         chmod +x "$actual_dir/node"
       ''}
@@ -171,30 +168,39 @@
         echo 0 > "$patched_file"
       }
 
-      # Fix any existing symlinks before we enter the inotify loop.
-      if [[ -e $bins_dir ]]; then
-        while read -rd ''' bin; do
-          patch_bin "$bin"
-        done < <(find "$bins_dir" -mindepth 1 -maxdepth 1 -type d -printf '%P\0')
-      else
-        mkdir -p "$bins_dir"
-      fi
-
-      while IFS=: read -r bin event; do
+      mkdir -p "$bins_dir_1" "$bins_dir_2"
+      while read -rd ''' bin; do
+        if [[ $bin == "$bins_dir_2"* ]]; then
+          bin="$bin/server"
+        fi
+        patch_bin "$bin"
+      done < <(find "$bins_dir_1" "$bins_dir_2" -mindepth 1 -maxdepth 1 -type d -printf '%p\0')
+ 
+      while IFS=: read -r bins_dir bin event; do
         # A new version of the VS Code Server is being created.
         if [[ $event == 'CREATE,ISDIR' ]]; then
-          actual_dir=$bins_dir/$bin
+          actual_dir="$bins_dir$bin"
+          if [[ "$bins_dir" == "$bins_dir_2/" ]]; then
+            actual_dir="$actual_dir/server"
+            # Hope that VSCode will not die if the directory exists when it tries to install, otherwise we'll need to
+            # use a coproc to wait for the directory to be created without entering in a race, then watch for the node
+            # file to be created (probably while also avoiding a race)
+            # https://unix.stackexchange.com/a/185370
+            mkdir -p "$actual_dir"
+          fi
           echo "VS Code server is being installed in $actual_dir..." >&2
+          # Quickly create a node file, which will be removed when vscode installs its own version
           touch "$actual_dir/node"
+          # Hope we don't race...
           inotifywait -qq -e DELETE_SELF "$actual_dir/node"
-          patch_bin "$bin"
+          patch_bin "$actual_dir"
         # The monitored directory is deleted, e.g. when "Uninstall VS Code Server from Host" has been run.
         elif [[ $event == DELETE_SELF ]]; then
           # See the comments above Restart in the service config.
           exit 0
         fi
-      done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%f:%e' "$bins_dir")
+      done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%w:%f:%e' "$bins_dir_1" "$bins_dir_2")
     '';
   };
 in
-  autoFixScript
+autoFixScript
