@@ -34,8 +34,8 @@ moduleConfig: {
 
     installPath = mkOption {
       type = str;
-      default = "~/.vscode-server";
-      example = "~/.vscode-server-oss";
+      default = "$HOME/.vscode-server";
+      example = "$HOME/.vscode-server-oss";
       description = ''
         The install path.
       '';
