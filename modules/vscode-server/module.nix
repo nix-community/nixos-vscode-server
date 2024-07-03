@@ -6,9 +6,9 @@ moduleConfig: {
 }: {
   options.services.vscode-server = let
     inherit (lib) mkEnableOption mkOption;
-    inherit (lib.types) lines listOf nullOr package str;
+    inherit (lib.types) lines listOf nullOr package str bool;
   in {
-    enable = mkEnableOption "VS Code Server";
+    enable = mkEnableOption "VS Code Server autofix";
 
     enableFHS = mkEnableOption "a FHS compatible environment";
 
@@ -49,6 +49,19 @@ moduleConfig: {
         This can be used as a hook for custom further patching.
       '';
     };
+
+    enableForAllUsers = mkOption {
+      type = bool;
+      default = false;
+      example = true;
+      description = ''
+        Whether to enable the VS Code Server auto-fix service for all users.
+
+        This only makes sense if auto-fix-vscode-server is installed as a NixOS module.
+
+        This automatically sets up the service's symlinks for systemd in each users' home directory.
+      '';
+    };
   };
 
   config = let
@@ -56,7 +69,7 @@ moduleConfig: {
     cfg = config.services.vscode-server;
     auto-fix-vscode-server =
       pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix
-      (removeAttrs cfg [ "enable" ]);
+      (removeAttrs cfg [ "enable" "enableForAllUsers" ]);
   in
     mkIf cfg.enable (mkMerge [
       {
@@ -74,6 +87,7 @@ moduleConfig: {
           RestartSec = 0;
           ExecStart = "${auto-fix-vscode-server}/bin/auto-fix-vscode-server";
         };
+        inherit config cfg lib;
       })
     ]);
 }
