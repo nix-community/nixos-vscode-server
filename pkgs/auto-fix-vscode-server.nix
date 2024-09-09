@@ -21,7 +21,7 @@
   enableFHS ? false,
   nodejsPackage ? null,
   extraRuntimeDependencies ? [ ],
-  installPath ? "$HOME/.vscode-server",
+  installPath ? ["$HOME/.vscode-server"],
   postPatch ? "",
 }: let
   inherit (lib) makeBinPath makeLibraryPath optionalString;
@@ -119,12 +119,14 @@
     '';
   };
 
-  autoFixScript = writeShellApplication {
-    name = "auto-fix-vscode-server";
+  autoFixScriptSingle = writeShellApplication {
+    name = "auto-fix-vscode-server-single";
     runtimeInputs = [ coreutils findutils inotify-tools ];
     text = ''
-      bins_dir_1=${installPath}/bin
-      bins_dir_2=${installPath}/cli/servers
+      base_dir="$1"
+
+      bins_dir_1="$base_dir/bin"
+      bins_dir_2="$base_dir/cli/servers"
 
       patch_bin () {
         local actual_dir="$1"
@@ -139,9 +141,9 @@
         old_patched_file="$(basename "$actual_dir")"
         if [[ $old_patched_file == "server" ]]; then
           old_patched_file="$(basename "$(dirname "$actual_dir")")"
-          old_patched_file="${installPath}/.''${old_patched_file%%.*}.patched"
+          old_patched_file="$base_dir/.''${old_patched_file%%.*}.patched"
         else
-          old_patched_file="${installPath}/.''${old_patched_file%%-*}.patched"
+          old_patched_file="$base_dir/.''${old_patched_file%%-*}.patched"
         fi
         if [[ -e $old_patched_file ]]; then
           echo "Migrating old nixos-vscode-server patch marker file to new location in $actual_dir." >&2
@@ -217,5 +219,16 @@
       done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%w:%f:%e' "$bins_dir_1" "$bins_dir_2")
     '';
   };
+
+  autoFixScript = writeShellApplication {
+    name = "auto-fix-vscode-server";
+    text = ''
+      installPaths="${toString installPath}"
+
+      for path in $installPaths; do
+        ${autoFixScriptSingle}/bin/auto-fix-vscode-server-single "$path"
+      done
+    '';
+  };
 in
-autoFixScript
+  autoFixScript
