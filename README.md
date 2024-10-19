@@ -54,7 +54,7 @@ use:
 {
   services.vscode-server = {
     enable = true;
-    enableForAllUsers = true;
+    enableForUsers.enable = true;
   };
 }
 ```

@@ -12,18 +12,18 @@ import ./module.nix (
         wantedBy = [ "default.target" ];
       };
     }
-    (lib.mkIf cfg.enableForAllUsers {
+    (lib.mkIf cfg.enableForUsers.enable {
       systemd.tmpfiles.settings =
         let
-          forEachUser = ({ path, file }: lib.attrsets.mapAttrs'
-            (username: userOptions:
-              {
+          forEachUser = ({ path, file }: builtins.listToAttrs
+            (builtins.map
+              (username: {
                 # Create the directory so that it has the appropriate permissions if it doesn't already exist
                 # Otherwise the directive below creating the symlink would have that owned by root
-                name = "${userOptions.home}/${path}";
+                name = "${config.users.users.${username}.home}/${path}";
                 value = file username;
               })
-            (lib.attrsets.filterAttrs (username: userOptions: userOptions.isNormalUser) config.users.users));
+              cfg.enableForUsers.users));
           homeDirectory = (path: forEachUser {
             inherit path;
             file = (username: {

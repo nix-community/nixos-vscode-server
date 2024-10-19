@@ -6,7 +6,7 @@ moduleConfig: {
 }: {
   options.services.vscode-server = let
     inherit (lib) mkEnableOption mkOption;
-    inherit (lib.types) lines listOf nullOr package str bool;
+    inherit (lib.types) lines listOf nullOr package str bool passwdEntry;
   in {
     enable = mkEnableOption "VS Code Server autofix";
 
@@ -50,17 +50,31 @@ moduleConfig: {
       '';
     };
 
-    enableForAllUsers = mkOption {
-      type = bool;
-      default = false;
-      example = true;
-      description = ''
-        Whether to enable the VS Code Server auto-fix service for all users.
+    enableForUsers = {
+      enable = mkOption {
+        type = bool;
+        default = false;
+        example = true;
+        description = ''
+          Whether to enable the VS Code Server auto-fix service for each user.
 
-        This only makes sense if auto-fix-vscode-server is installed as a NixOS module.
+          This only makes sense if auto-fix-vscode-server is installed as a NixOS module.
 
-        This automatically sets up the service's symlinks for systemd in each users' home directory.
-      '';
+          This automatically sets up the service's symlinks for systemd in each users' home directory.
+        '';
+      };
+
+      users = mkOption {
+        type = listOf (passwdEntry str);
+        default = builtins.attrNames (lib.attrsets.filterAttrs (username: userOptions: userOptions.isNormalUser) config.users.users);
+        defaultText = "builtins.attrNames (lib.filterAttrs (_: userOptions: userOptions.isNormalUser) config.users.users)";
+        example = [ "alice" "bob" ];
+        description = ''
+          List of users to enable the VS Code Server auto-fix service for.
+
+          By default this will fallback to the list of "normal" users.
+        '';
+      };
     };
   };
 
@@ -69,7 +83,7 @@ moduleConfig: {
     cfg = config.services.vscode-server;
     auto-fix-vscode-server =
       pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix
-      (removeAttrs cfg [ "enable" "enableForAllUsers" ]);
+      (removeAttrs cfg [ "enable" "enableForUsers" ]);
   in
     mkIf cfg.enable (mkMerge [
       {

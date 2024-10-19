@@ -19,8 +19,8 @@ import ./module.nix (
     };
 
     assertions = [{
-      assertion = !cfg.enableForAllUsers;
-      message = "enableForAllUsers=true doesn't make sense when using nixos-vscode-server as a home-manager module";
+      assertion = !cfg.enableForUsers.enable;
+      message = "enableForUsers.enable=true doesn't make sense when using nixos-vscode-server as a home-manager module";
     }];
   }
 )
