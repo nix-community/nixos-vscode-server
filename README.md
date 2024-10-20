@@ -105,7 +105,7 @@ Whether to enable the service or not.
 ```
 
 ### `enableFHS`
-A FHS compatible environment can be enabled to make binaries supplied by extensions work in NixOS without having to patch them. Note that this does come with downsides too, such as problematic support for SUID wrappers and terminals potentially behaving differently from a normal SSH connection, which is why it is not enabled by default.
+A FHS ([Filesystem Hierarchy Standard](https://en.wikipedia.org/wiki/Filesystem_Hierarchy_Standard)) compatible environment can be enabled to make binaries supplied by extensions work in NixOS without having to patch them. Note that this does come with downsides too, such as problematic support for SUID wrappers and terminals potentially behaving differently from a normal SSH connection, which is why it is not enabled by default.
 
 ```nix
 {
