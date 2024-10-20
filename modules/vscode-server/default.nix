@@ -37,10 +37,10 @@ import ./module.nix (
         in
         {
           # We need to create each of the folders before the next file otherwise parents get owned by root
-          "80-vscode-server-setup-config-folder-for-all-users" = homeDirectory ".config";
-          "81-vscode-server-setup-systemd-folder-for-all-users" = homeDirectory ".config/systemd";
-          "82-vscode-server-setup-systemd-user-folder-for-all-users" = homeDirectory ".config/systemd/user";
-          "83-vscode-server-enable-auto-fix-vscode-server-service-for-all-users" = forEachUser {
+          "80-vscode-server-enable-for-users-create-config-folder" = homeDirectory ".config";
+          "81-vscode-server-enable-for-users-create-systemd-folder" = homeDirectory ".config/systemd";
+          "82-vscode-server-enable-for-users-create-systemd-user-folder" = homeDirectory ".config/systemd/user";
+          "83-vscode-server-enable-for-users-enable-auto-fix-vscode-server-service" = forEachUser {
             path = ".config/systemd/user/auto-fix-vscode-server.service";
             file = (username: {
               "L+" = {

@@ -61,6 +61,8 @@ moduleConfig: {
           This only makes sense if auto-fix-vscode-server is installed as a NixOS module.
 
           This automatically sets up the service's symlinks for systemd in each users' home directory.
+
+          By default this will set it up for all regular users, but that list can be overridden by setting `users`.
         '';
       };
 

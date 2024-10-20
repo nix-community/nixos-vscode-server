@@ -61,6 +61,16 @@ use:
 
 This will use `tmpfiles` to setup the permanent symlink described below for each regular user.
 
+If you do not wish to enable it for all users, but only for a specific subset, the list of users this will be setup for can be overridden:
+
+```nix
+{
+  services.vscode-server.enableForUsers.users = [ "alice" "bob" ];
+}
+```
+
+Note that when disabling `services.vscode-server.enableForUsers.enable`, the file that was created in the user's `.config/systemd/user` will not be cleaned up, so you will have to clean it up manually.
+
 ##### Manually for each user
 
 And then enable them for the relevant users:
