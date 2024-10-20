@@ -17,11 +17,11 @@ import ./module.nix (
         let
           forEachUser = ({ path, file }: builtins.listToAttrs
             (builtins.map
-              (username: {
+              (username: let user = config.users.users.${username}; in {
                 # Create the directory so that it has the appropriate permissions if it doesn't already exist
                 # Otherwise the directive below creating the symlink would have that owned by root
-                name = "${config.users.users.${username}.home}/${path}";
-                value = file username;
+                name = "${user.home}/${path}";
+                value = file user.name;
               })
               cfg.enableForUsers.users));
           homeDirectory = (path: forEachUser {
