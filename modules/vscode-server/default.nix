@@ -18,8 +18,6 @@ import ./module.nix (
           forEachUser = ({ path, file }: builtins.listToAttrs
             (builtins.map
               (username: let user = config.users.users.${username}; in {
-                # Create the directory so that it has the appropriate permissions if it doesn't already exist
-                # Otherwise the directive below creating the symlink would have that owned by root
                 name = "${user.home}/${path}";
                 value = file user.name;
               })
