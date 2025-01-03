@@ -71,7 +71,7 @@ moduleConfig: {
           # Unfortunately the monitor does not kill itself when it stops monitoring,
           # so rather than creating our own restart mechanism, we leverage systemd to do this for us.
           Restart = "always";
-          RestartSec = 0;
+          RestartSec = 5;
           ExecStart = "${auto-fix-vscode-server}/bin/auto-fix-vscode-server";
         };
       })
