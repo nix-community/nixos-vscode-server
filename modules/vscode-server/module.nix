@@ -33,11 +33,11 @@ moduleConfig: {
     };
 
     installPath = mkOption {
-      type = str;
-      default = "$HOME/.vscode-server";
-      example = "$HOME/.vscode-server-oss";
+      type = listOf str;
+      default = [ "$HOME/.vscode-server" ];
+      example = [ "$HOME/.vscode-server" "$HOME/.vscode-server-oss" "$HOME/.vscode-server-insiders" ];
       description = ''
-        The install path.
+        The install paths for VS Code Server.
       '';
     };
 

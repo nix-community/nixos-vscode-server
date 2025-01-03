@@ -123,11 +123,12 @@
     name = "auto-fix-vscode-server";
     runtimeInputs = [ coreutils findutils inotify-tools ];
     text = ''
-      bins_dir_1=${installPath}/bin
-      bins_dir_2=${installPath}/cli/servers
+      # Convert installPath list to an array
+      IFS=':' read -r -a installPaths <<< "${lib.concatStringsSep ":" installPath}"
 
       patch_bin () {
         local actual_dir="$1"
+        local current_install_path="$2"
         local patched_file="$actual_dir/.nixos-patched"
 
         if [[ -e $patched_file ]]; then
@@ -139,9 +140,9 @@
         old_patched_file="$(basename "$actual_dir")"
         if [[ $old_patched_file == "server" ]]; then
           old_patched_file="$(basename "$(dirname "$actual_dir")")"
-          old_patched_file="${installPath}/.''${old_patched_file%%.*}.patched"
+          old_patched_file="$current_install_path/.''${old_patched_file%%.*}.patched"
         else
-          old_patched_file="${installPath}/.''${old_patched_file%%-*}.patched"
+          old_patched_file="$current_install_path/.''${old_patched_file%%-*}.patched"
         fi
         if [[ -e $old_patched_file ]]; then
           echo "Migrating old nixos-vscode-server patch marker file to new location in $actual_dir." >&2
@@ -183,38 +184,58 @@
         echo 0 > "$patched_file"
       }
 
-      mkdir -p "$bins_dir_1" "$bins_dir_2"
-      while read -rd ''' bin; do
-        if [[ $bin == "$bins_dir_2"* ]]; then
+      # Initialize arrays for bins_dirs_1 and bins_dirs_2
+      bins_dirs_1=()
+      bins_dirs_2=()
+
+      # Populate bins_dirs_1 and bins_dirs_2 based on installPaths
+      for current_install_path in "''${installPaths[@]}"; do
+        bins_dirs_1+=("$current_install_path/bin")
+        bins_dirs_2+=("$current_install_path/cli/servers")
+      done
+
+      # Create directories and patch existing bins
+      for bins_dir_1 in "''${bins_dirs_1[@]}"; do
+        mkdir -p "$bins_dir_1"
+        while read -rd ''' bin; do
+          patch_bin "$bin" "$(dirname "$(dirname "$bin")")"
+        done < <(find "$bins_dir_1" -mindepth 1 -maxdepth 1 -type d -printf '%p\0')
+      done
+      for bins_dir_2 in "''${bins_dirs_2[@]}"; do
+        mkdir -p "$bins_dir_2"
+        while read -rd ''' bin; do
           bin="$bin/server"
-        fi
-        patch_bin "$bin"
-      done < <(find "$bins_dir_1" "$bins_dir_2" -mindepth 1 -maxdepth 1 -type d -printf '%p\0')
- 
+          patch_bin "$bin" "$(dirname "$(dirname "$bin")")"
+        done < <(find "$bins_dir_2" -mindepth 1 -maxdepth 1 -type d -printf '%p\0')
+      done
+
+      # Watch for new installations
       while IFS=: read -r bins_dir bin event; do
         # A new version of the VS Code Server is being created.
         if [[ $event == 'CREATE,ISDIR' ]]; then
           actual_dir="$bins_dir$bin"
-          if [[ "$bins_dir" == "$bins_dir_2/" ]]; then
+          actual_install_path="$(dirname "$bins_dir")"
+          if [[ "$bins_dir" == */cli/servers/ ]]; then
             actual_dir="$actual_dir/server"
             # Hope that VSCode will not die if the directory exists when it tries to install, otherwise we'll need to
             # use a coproc to wait for the directory to be created without entering in a race, then watch for the node
             # file to be created (probably while also avoiding a race)
             # https://unix.stackexchange.com/a/185370
             mkdir -p "$actual_dir"
+            actual_install_path="$(dirname "$(dirname "$bins_dir")")"
           fi
           echo "VS Code server is being installed in $actual_dir..." >&2
           # Quickly create a node file, which will be removed when vscode installs its own version
           touch "$actual_dir/node"
           # Hope we don't race...
           inotifywait -qq -e DELETE_SELF "$actual_dir/node"
-          patch_bin "$actual_dir"
+          patch_bin "$actual_dir" "$actual_install_path"
         # The monitored directory is deleted, e.g. when "Uninstall VS Code Server from Host" has been run.
         elif [[ $event == DELETE_SELF ]]; then
           # See the comments above Restart in the service config.
           exit 0
         fi
-      done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%w:%f:%e' "$bins_dir_1" "$bins_dir_2")
+      done < <(inotifywait -q -m -e CREATE,ISDIR -e DELETE_SELF --format '%w:%f:%e' "''${bins_dirs_1[@]}" "''${bins_dirs_2[@]}")
     '';
   };
 in
