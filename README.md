@@ -140,11 +140,11 @@ This same list is also used to determine the `RPATH` when automatically patching
 ```
 
 ### `installPath`
-The installation path for VS Code server is configurable and the default can differ for alternative builds (e.g. oss and insider), so this option allows you to configure which installation path should be monitered and automatically fixed.
+The installation path for VS Code server is configurable and the default can differ for alternative builds (e.g. oss and insider), so this option allows you to configure which installation path should be monitered and automatically fixed. If you have multiple installations, you can specify them as an array.
 
 ```nix
 {
-  services.vscode-server.installPath = "$HOME/.vscode-server-oss";
+  services.vscode-server.installPath = [ "$HOME/.vscode-server" "$HOME/.vscode-server-oss" ];
 }
 ```
 
