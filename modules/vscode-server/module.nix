@@ -33,11 +33,13 @@ moduleConfig: {
     };
 
     installPath = mkOption {
-      type = listOf str;
+      type = lib.types.coercedTo str (x: [x]) (listOf str);
       default = [ "$HOME/.vscode-server" ];
       example = [ "$HOME/.vscode-server" "$HOME/.vscode-server-oss" "$HOME/.vscode-server-insiders" ];
       description = ''
-        The install paths for VS Code Server.
+        Path(s) where VS Code Server will be installed.
+        Accepts either a single path string or a list of paths.
+        String values are automatically coerced to a single-element list for backwards compatibility.
       '';
     };
 
