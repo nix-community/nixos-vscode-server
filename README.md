@@ -42,6 +42,37 @@ you'll have to manually enable the service for each user (see below).
 
 #### Enable the service
 
+##### Automatically for all users
+
+Instead of just
+```nix
+{ services.vscode-server.enable = true; }
+```
+
+use:
+```nix
+{
+  services.vscode-server = {
+    enable = true;
+    enableForUsers.enable = true;
+  };
+}
+```
+
+This will use `tmpfiles` to setup the permanent symlink described below for each regular user.
+
+If you do not wish to enable it for all users, but only for a specific subset, the list of users this will be setup for can be overridden:
+
+```nix
+{
+  services.vscode-server.enableForUsers.users = [ "alice" "bob" ];
+}
+```
+
+Note that when disabling `services.vscode-server.enableForUsers.enable`, the file that was created in the user's `.config/systemd/user` will not be cleaned up, so you will have to clean it up manually.
+
+##### Manually for each user
+
 And then enable them for the relevant users:
 
 ```bash
@@ -79,6 +110,8 @@ ln -sfT /run/current-system/etc/systemd/user/auto-fix-vscode-server.service ~/.c
 
 ### Home Manager
 
+#### Install as a tarball
+
 Put this code into your [home-manager](https://github.com/nix-community/home-manager) configuration i.e. in `~/.config/nixpkgs/home.nix`:
 
 ```nix
@@ -88,6 +121,25 @@ Put this code into your [home-manager](https://github.com/nix-community/home-man
   ];
 
   services.vscode-server.enable = true;
+}
+```
+
+#### Install as a flake
+
+```nix
+{
+  inputs.vscode-server.url = "github:nix-community/nixos-vscode-server";
+
+  outputs = { self, vscode-server, home-manager }: {
+    homeConfigurations.yourhostname = home-manager.lib.homeManagerConfiguration {
+      modules = [
+        vscode-server.homeModules.default
+        ({ config, pkgs, ... }: {
+          services.vscode-server.enable = true;
+        })
+      ];
+    };
+  };
 }
 ```
 
