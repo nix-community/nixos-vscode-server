@@ -33,11 +33,13 @@ moduleConfig: {
     };
 
     installPath = mkOption {
-      type = str;
-      default = "$HOME/.vscode-server";
-      example = "$HOME/.vscode-server-oss";
+      type = lib.types.coercedTo str (x: [x]) (listOf str);
+      default = [ "$HOME/.vscode-server" ];
+      example = [ "$HOME/.vscode-server" "$HOME/.vscode-server-oss" "$HOME/.vscode-server-insiders" ];
       description = ''
-        The install path.
+        Path(s) where VS Code Server will be installed.
+        Accepts either a single path string or a list of paths.
+        String values are automatically coerced to a single-element list for backwards compatibility.
       '';
     };
 
@@ -71,7 +73,7 @@ moduleConfig: {
           # Unfortunately the monitor does not kill itself when it stops monitoring,
           # so rather than creating our own restart mechanism, we leverage systemd to do this for us.
           Restart = "always";
-          RestartSec = 0;
+          RestartSec = 5;
           ExecStart = "${auto-fix-vscode-server}/bin/auto-fix-vscode-server";
         };
       })

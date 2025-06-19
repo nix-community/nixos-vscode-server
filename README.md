@@ -140,13 +140,25 @@ This same list is also used to determine the `RPATH` when automatically patching
 ```
 
 ### `installPath`
-The installation path for VS Code server is configurable and the default can differ for alternative builds (e.g. oss and insider), so this option allows you to configure which installation path should be monitered and automatically fixed.
+The installation path for VS Code server is configurable. You can specify either a single path as a string or multiple paths as a list. If you have multiple installations (e.g., stable, OSS, and insider builds), you can specify all of them to be monitored and automatically fixed.
 
 ```nix
+# Single path (string)
 {
-  services.vscode-server.installPath = "$HOME/.vscode-server-oss";
+  services.vscode-server.installPath = "$HOME/.vscode-server";
+}
+
+# Multiple paths (list)
+{
+  services.vscode-server.installPath = [
+    "$HOME/.vscode-server"
+    "$HOME/.vscode-server-oss"
+    "$HOME/.vscode-server-insiders"
+  ];
 }
 ```
+
+String values are automatically coerced to a single-element list for backwards compatibility.
 
 ### `postPatch`
 The goal of this project is to make VS Code server work with NixOS, anything more is outside of the scope of the project, but if you want additional things to be done, you can use this hook to run a shell script after the patching is done.
