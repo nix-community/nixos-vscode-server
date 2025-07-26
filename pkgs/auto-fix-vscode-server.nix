@@ -1,7 +1,6 @@
 {
   lib,
-  buildFHSUserEnv ? buildFHSEnv,
-  buildFHSEnv ? buildFHSUserEnv,
+  buildFHSEnv,
   runtimeShell,
   writeShellScript,
   writeShellApplication,
@@ -47,7 +46,7 @@
     ++ extraRuntimeDependencies;
 
   nodejs = nodejsPackage;
-  nodejsFHS = buildFHSUserEnv {
+  nodejsFHS = buildFHSEnv {
     name = "node";
     targetPkgs = _: runtimeDependencies;
     extraBuildCommands = ''
