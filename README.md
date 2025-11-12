@@ -166,8 +166,9 @@ The goal of this project is to make VS Code server work with NixOS, anything mor
 ```nix
 {
   services.vscode-server.postPatch = ''
-    bin=$1
-    bin_dir=${config.services.vscode-server.installPath}/bin/$bin
+    bin_dir=$1
+    # $bin_dir (vscode 1.105.1) is something like
+    # ~/.vscode-server/cli/servers/Stable-7d842fb85a0275a4a8e4d7e040d2625abbf7f084/server
     # ...
   '';
 }

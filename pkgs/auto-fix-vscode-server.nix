@@ -114,7 +114,7 @@
       # Mark the bin directory as being fully patched.
       echo 1 > "$patched_file"
 
-      ${optionalString (postPatch != "") ''${writeShellScript "post-patchelf-vscode-server" postPatch} "$bin"''}
+      ${optionalString (postPatch != "") ''${writeShellScript "post-patchelf-vscode-server" postPatch} "$bin_dir"''}
     '';
   };
 
