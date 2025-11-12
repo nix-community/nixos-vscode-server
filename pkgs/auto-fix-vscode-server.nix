@@ -109,6 +109,15 @@
         while read -rd ''' elf; do
           patch_elf "$elf"
         done < <(find "$bin_dir" -type f -perm -100 -printf '%p\0')
+
+        # Refer to https://github.com/NixOS/nixpkgs/issues/405528.
+        # For whatever reason, libssl is required but absent from DT_NEEDED.
+        vsce_sign_bin="$bin_dir/node_modules/@vscode/vsce-sign/bin/vsce-sign"
+        if [[ -f "$vsce_sign_bin" ]]; then
+          patchelf \
+            --add-needed ${lib.getLib openssl}/lib/libssl.so \
+            "$vsce_sign_bin"
+        fi
       ''}
 
       # Mark the bin directory as being fully patched.
