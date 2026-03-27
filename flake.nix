@@ -2,30 +2,31 @@
   description = "NixOS VSCode server";
 
   inputs = {
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    flake-utils,
-  }:
-    {
-      nixosModule = self.nixosModules.default; # Deprecrated, but perhaps still in use.
-      nixosModules.default = import ./modules/vscode-server;
-      nixosModules.home = self.homeModules.default; # Backwards compatiblity.
-      homeModules.default = import ./modules/vscode-server/home.nix; # Consistent with homeConfigurations.
-    }
-    // (let
-      inherit (flake-utils.lib) defaultSystems eachSystem;
-    in
-      eachSystem defaultSystems (system: let
-        pkgs = nixpkgs.legacyPackages.${system};
-        inherit (pkgs.lib) hasSuffix optionalAttrs;
-        auto-fix-vscode-server = pkgs.callPackage ./pkgs/auto-fix-vscode-server.nix { };
-      in
-        # The package depends on `inotify-tools` which is only available on Linux.
-        optionalAttrs (hasSuffix "-linux" system) {
+  outputs =
+    inputs@{ self, flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      # The package depends on `inotify-tools` which is only available on Linux.
+      systems = [
+        "aarch64-linux"
+        "x86_64-linux"
+      ];
+
+      flake = {
+        nixosModule = self.nixosModules.default; # Deprecrated, but perhaps still in use.
+        nixosModules.default = import ./modules/vscode-server;
+        nixosModules.home = self.homeModules.default; # Backwards compatiblity.
+        homeModules.default = import ./modules/vscode-server/home.nix; # Consistent with homeConfigurations.
+      };
+
+      perSystem =
+        { pkgs, ... }:
+        let
+          auto-fix-vscode-server = pkgs.callPackage ./pkgs/auto-fix-vscode-server.nix { };
+        in
+        {
           packages = {
             inherit auto-fix-vscode-server;
             default = auto-fix-vscode-server;
@@ -33,5 +34,6 @@
           checks = {
             inherit auto-fix-vscode-server;
           };
-        }));
+        };
+    };
 }
