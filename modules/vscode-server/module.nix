@@ -6,9 +6,9 @@ moduleConfig: {
 }: {
   options.services.vscode-server = let
     inherit (lib) mkEnableOption mkOption;
-    inherit (lib.types) lines listOf nullOr package str;
+    inherit (lib.types) lines listOf nullOr package str bool passwdEntry;
   in {
-    enable = mkEnableOption "VS Code Server";
+    enable = mkEnableOption "VS Code Server autofix";
 
     enableFHS = mkEnableOption "a FHS compatible environment";
 
@@ -51,6 +51,35 @@ moduleConfig: {
         This can be used as a hook for custom further patching.
       '';
     };
+
+    enableForUsers = {
+      enable = mkOption {
+        type = bool;
+        default = false;
+        example = true;
+        description = ''
+          Whether to enable the VS Code Server auto-fix service for each user.
+
+          This only makes sense if auto-fix-vscode-server is installed as a NixOS module.
+
+          This automatically sets up the service's symlinks for systemd in each users' home directory.
+
+          By default this will set it up for all regular users, but that list can be overridden by setting `users`.
+        '';
+      };
+
+      users = mkOption {
+        type = listOf (passwdEntry str);
+        default = builtins.attrNames (lib.attrsets.filterAttrs (username: userOptions: userOptions.isNormalUser) config.users.users);
+        defaultText = "builtins.attrNames (lib.filterAttrs (_: userOptions: userOptions.isNormalUser) config.users.users)";
+        example = [ "alice" "bob" ];
+        description = ''
+          List of users to enable the VS Code Server auto-fix service for.
+
+          By default this will fallback to the list of "normal" users.
+        '';
+      };
+    };
   };
 
   config = let
@@ -58,7 +87,7 @@ moduleConfig: {
     cfg = config.services.vscode-server;
     auto-fix-vscode-server =
       pkgs.callPackage ../../pkgs/auto-fix-vscode-server.nix
-      (removeAttrs cfg [ "enable" ]);
+      (removeAttrs cfg [ "enable" "enableForUsers" ]);
   in
     mkIf cfg.enable (mkMerge [
       {
@@ -76,6 +105,7 @@ moduleConfig: {
           RestartSec = 5;
           ExecStart = "${auto-fix-vscode-server}/bin/auto-fix-vscode-server";
         };
+        inherit config cfg lib;
       })
     ]);
 }
