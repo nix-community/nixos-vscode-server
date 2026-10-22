@@ -207,20 +207,22 @@
         mkdir -p "$bins_dir_1"
         while read -rd ''' bin; do
           patch_bin "$bin" "$(dirname "$(dirname "$bin")")"
-        done < <(find "$bins_dir_1" -mindepth 1 -maxdepth 1 -type d -printf '%p\0')
+        done < <(find "$bins_dir_1" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%p\0')
       done
       for bins_dir_2 in "''${bins_dirs_2[@]}"; do
         mkdir -p "$bins_dir_2"
         while read -rd ''' bin; do
           bin="$bin/server"
           patch_bin "$bin" "$(dirname "$(dirname "$bin")")"
-        done < <(find "$bins_dir_2" -mindepth 1 -maxdepth 1 -type d -printf '%p\0')
+        done < <(find "$bins_dir_2" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%p\0')
       done
 
       # Watch for new installations
       while IFS=: read -r bins_dir bin event; do
         # A new version of the VS Code Server is being created.
         if [[ $event == 'CREATE,ISDIR' ]]; then
+          # Ignore lock and metadata directories. They never contain a server.
+          [[ $bin == .* ]] && continue
           actual_dir="$bins_dir$bin"
           actual_install_path="$(dirname "$bins_dir")"
           if [[ "$bins_dir" == */cli/servers/ ]]; then
