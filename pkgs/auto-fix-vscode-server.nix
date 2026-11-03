@@ -99,7 +99,10 @@
 
           # Patch the binary based on the binary of Node.js,
           # which should include all dependencies they might need.
-          patchelf --set-interpreter "$INTERP" --set-rpath "$RPATH" "$elf"
+          # We set rpath prior to the interpreter as a workaround for:
+          # https://github.com/NixOS/patchelf/issues/524
+          patchelf --set-rpath "$RPATH" "$elf"
+          patchelf --set-interpreter "$INTERP" "$elf"
 
           # The actual dependencies are probably less than that of Node.js,
           # so shrink the RPATH to only keep those that are actually needed.
