@@ -91,6 +91,19 @@ Put this code into your [home-manager](https://github.com/nix-community/home-man
 }
 ```
 
+or with the module import inside a home-manager module:
+
+```nix
+{ inputs, osConfig, ... }:
+{
+  imports = [
+    inputs.vscode-server.homeModules.default
+  ];
+
+  services.vscode-server.enable = true;
+}
+```
+
 ## Usage
 
 When using VS Code as released by Microsoft without any special needs, just enabling and starting the service should be enough to make things work. If you have some custom build or needs, there are a few options available that might help you out.
